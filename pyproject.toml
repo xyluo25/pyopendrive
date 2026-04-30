@@ -1,11 +1,76 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pyopendrive"
-license = "Apache-2.0"
-
+version = "0.4.3"
+description = "Python tools for reading, inspecting, and converting OpenDRIVE road networks."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Xiangyong Luo", email = "luoxiangyong01@gmail.com" },
+]
+keywords = [
+    "opendrive",
+    "xodr",
+    "sumo",
+    "road-network",
+    "traffic-simulation",
+    "viewer",
+]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "loguru>=0.7.0",
+    "sumolib==1.26.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest==9.0.3",
 ]
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pyopendrive*"]
+
+[tool.setuptools.package-data]
+pyopendrive = [
+    "__web/index.html",
+    "__web/README.md",
+    "__web/viewer.js",
+    "__web/viewer.wasm",
+    "__web/viewer.data",
+    "__web/viewer.local-assets.js",
+    "__web/favicon.ico",
+    "__web/fonts/*",
+]
+"pyopendrive.web" = [
+    "index.html",
+    "README.md",
+    "viewer.js",
+    "viewer.wasm",
+    "viewer.data",
+    "viewer.local-assets.js",
+    "favicon.ico",
+    "fonts/*",
+]

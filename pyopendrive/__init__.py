@@ -24,13 +24,13 @@ from .__xodr_sumo import (
     xodr_to_sumo_net,
 )
 
+# from .web import web_viewer, run_server
+from .web import web_viewer
+
 
 __all__ = [
     "OpenDriveMap",
     "load",
-    "opendrive_to_sumo_net",
-    "xodr_to_sumo_net",
-    "sumo_net_to_opendrive_map",
     "Road",
     "LaneSection",
     "Lane",
@@ -46,4 +46,13 @@ __all__ = [
     "RoadNetworkMesh",
     "RoutingGraph",
     "RoutingGraphEdge",
+
+    # xodr and sumo conversion
+    "opendrive_to_sumo_net",
+    "xodr_to_sumo_net",
+    "sumo_net_to_opendrive_map",
+
+    # Web viewer
+    "web_viewer",
+    # "run_server",
 ]

@@ -7,6 +7,10 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
+# Add system path for imports from pyopendrive package
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import pyopendrive as odr
 
 
@@ -338,7 +342,7 @@ def test_mesh_obj_and_routing_unreachable() -> None:
 
 def test_real_chatt_file_smoke() -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    xodr = repo_root / "chatt.xodr"
+    xodr = repo_root / "datasets/chatt.xodr"
     odr_map = odr.load(xodr)
 
     assert len(odr_map.get_roads()) == 189
@@ -357,7 +361,7 @@ def test_real_chatt_file_smoke() -> None:
 )
 def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[1]
-    xodr = repo_root / "chatt.xodr"
+    xodr = repo_root / "datasets/chatt.xodr"
     net_file = tmp_path / "chatt.net.xml"
     roundtrip_xodr = tmp_path / "chatt_roundtrip.xodr"
 
@@ -400,7 +404,7 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
 def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
     sumolib_net = pytest.importorskip("sumolib.net")
     repo_root = Path(__file__).resolve().parents[1]
-    net_file = repo_root / "chatt.net.xml"
+    net_file = repo_root / "datasets/chatt.net.xml"
     roundtrip_xodr = tmp_path / "chatt_from_sumo.xodr"
 
     sumo_net = sumolib_net.readNet(str(net_file), withInternal=True)
@@ -444,3 +448,4 @@ def test_bad_lane_section_without_center_lane_raises(tmp_path: Path) -> None:
     )
     with pytest.raises(RuntimeError, match="lane section does not have lane #0"):
         odr.OpenDriveMap(str(xodr))
+

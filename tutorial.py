@@ -6,17 +6,13 @@ Run from the repository root:
 """
 
 from pathlib import Path
-try:
-    from . import pyopendrive
-    from .pyopendrive import OpenDriveMap
-except ImportError:
-    import pyopendrive
-    from pyopendrive import OpenDriveMap
+import pyopendrive
+from pyopendrive import OpenDriveMap
+import sumolib
 
 
 if __name__ == "__main__":
-    xodr = Path(__file__).resolve().parent.parent / "chatt.xodr"
-    xodr = "./chatt.xodr"
+    xodr = "./datasets/chatt.xodr"
     odr_map = OpenDriveMap(str(xodr))
 
     roads = odr_map.get_roads()
