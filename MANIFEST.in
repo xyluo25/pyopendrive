@@ -1,0 +1,7 @@
+include LICENSE
+include NOTICE
+include README.md
+include README_license_section.md
+recursive-include third_party *
+recursive-include docs *
+recursive-include pyopendrive/viewer *

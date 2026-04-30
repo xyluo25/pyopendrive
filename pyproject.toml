@@ -1,0 +1,11 @@
+[project]
+name = "pyopendrive"
+license = "Apache-2.0"
+
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+]
+
+[tool.setuptools]
+include-package-data = true

@@ -1,0 +1,29 @@
+pyopendrive
+Copyright 2026 Xiangyong Luo
+
+This project includes Python-converted and adapted components based on the
+original libopendrive project.
+
+Original project:
+libopendrive
+
+Original license:
+Apache License, Version 2.0
+
+Original copyright:
+[REPLACE THIS LINE WITH THE EXACT COPYRIGHT NOTICE FROM THE ORIGINAL libopendrive PROJECT]
+
+Modifications in pyopendrive:
+- Converted selected original C++ implementation concepts and components into Python.
+- Refactored APIs for Python package usage.
+- Integrated a web viewer into the pyopendrive Python package.
+- Added Python packaging, documentation, examples, and distribution metadata.
+
+If the original libopendrive distribution contains a NOTICE file, copy its contents
+below this paragraph or include the original NOTICE file at:
+third_party/libopendrive/NOTICE
+
+Third-party web viewer components:
+This package may include JavaScript, CSS, font, icon, or map/viewer dependencies.
+Their licenses should be preserved under:
+third_party/web_viewer/licenses/
