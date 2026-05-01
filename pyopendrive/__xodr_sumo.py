@@ -340,12 +340,28 @@ def _annotate_sumo_net_ids(net_file: Path) -> None:
         if node_id:
             _set_param(junction, _ORIGINAL_NODE_ID_PARAM, node_id)
 
+    edge_id_map: dict[str, str] = {}
+    existing_edge_ids = {
+        edge_id
+        for edge_id in (edge.get("id") for edge in root.findall("edge"))
+        if edge_id
+    }
+
     for edge in root.findall("edge"):
         edge_id = edge.get("id")
         if not edge_id:
             continue
         original_link_id = _original_link_id_from_edge_id(edge_id)
         _set_param(edge, _ORIGINAL_LINK_ID_PARAM, original_link_id)
+        if (
+            edge.get("function") != "internal"
+            and original_link_id != edge_id
+            and original_link_id not in existing_edge_ids
+        ):
+            edge.set("id", original_link_id)
+            edge_id_map[edge_id] = original_link_id
+            existing_edge_ids.remove(edge_id)
+            existing_edge_ids.add(original_link_id)
         for lane in edge.findall("lane"):
             lane_id = lane.get("id")
             lane_index = lane.get("index")
@@ -355,8 +371,38 @@ def _annotate_sumo_net_ids(net_file: Path) -> None:
                 lane_index,
             )
             _set_param(lane, _ORIGINAL_LANE_ID_PARAM, original_lane_id)
+            if edge_id in edge_id_map and lane_id:
+                lane.set(
+                    "id",
+                    _replace_edge_id_prefix(lane_id, edge_id, edge_id_map[edge_id]),
+                )
+
+    _restore_sumo_edge_references(root, edge_id_map)
 
     _write_xml(tree, net_file)
+
+
+def _restore_sumo_edge_references(
+    root: ET.Element,
+    edge_id_map: Mapping[str, str],
+) -> None:
+    if not edge_id_map:
+        return
+
+    for connection in root.findall("connection"):
+        for attr in ("from", "to"):
+            edge_id = connection.get(attr)
+            if edge_id in edge_id_map:
+                connection.set(attr, edge_id_map[edge_id])
+
+
+def _replace_edge_id_prefix(value: str, old_edge_id: str, new_edge_id: str) -> str:
+    if value == old_edge_id:
+        return new_edge_id
+    prefix = f"{old_edge_id}_"
+    if value.startswith(prefix):
+        return f"{new_edge_id}_{value[len(prefix):]}"
+    return value
 
 
 def _restore_opendrive_ids(xodr_file: Path, source_net_file: Path) -> None:

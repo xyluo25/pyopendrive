@@ -376,7 +376,7 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     assert len(sumo_net.getNodes()) > 0
     assert len(sumo_net.getEdges()) > 0
     assert sumo_net.getBoundary()[2] > sumo_net.getBoundary()[0]
-    edge_280 = sumo_net.getEdge("-280")
+    edge_280 = sumo_net.getEdge("280")
     assert edge_280.getParam("pyopendrive.original_link_id") == "280"
     assert edge_280.getLanes()[0].getParam("pyopendrive.original_lane_id") == "-1"
     assert edge_280.getLanes()[1].getParam("pyopendrive.original_lane_id") == "-2"
@@ -395,6 +395,50 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     assert roundtrip_map.get_road("280").get_lanesections()[0].get_lane(-1).id == -1
     assert roundtrip_map.get_road("280").get_lanesections()[0].get_lane(-2).id == -2
     assert_vec_finite(roundtrip_map.get_roads()[0].ref_line.get_xyz(0.0))
+
+
+def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
+    tmp_path: Path,
+) -> None:
+    import pyopendrive.__xodr_sumo as xodr_sumo
+
+    net_file = tmp_path / "network.net.xml"
+    net_file.write_text(
+        """<net>
+        <junction id="1"/>
+        <edge id="-280" from="1" to="2">
+            <lane id="-280_0" index="0"/>
+            <lane id="-280_1" index="1"/>
+        </edge>
+        <edge id="-281" from="2" to="3">
+            <lane id="-281_0" index="0"/>
+        </edge>
+        <connection from="-280" to="-281" fromLane="0" toLane="0"/>
+        <connection from=":1_0" to="-280" fromLane="0" toLane="1"/>
+        </net>""",
+        encoding="utf-8",
+    )
+
+    xodr_sumo._annotate_sumo_net_ids(net_file)
+
+    root = ET.parse(net_file).getroot()
+    edges = {edge.get("id"): edge for edge in root.findall("edge")}
+    assert set(edges) == {"280", "281"}
+    assert edges["280"].find("./param").get("value") == "280"
+    assert [lane.get("id") for lane in edges["280"].findall("lane")] == [
+        "280_0",
+        "280_1",
+    ]
+    assert [
+        lane.find("./param").get("value")
+        for lane in edges["280"].findall("lane")
+    ] == ["-1", "-2"]
+
+    connections = root.findall("connection")
+    assert connections[0].get("from") == "280"
+    assert connections[0].get("to") == "281"
+    assert connections[1].get("from") == ":1_0"
+    assert connections[1].get("to") == "280"
 
 
 @pytest.mark.skipif(
