@@ -20,7 +20,9 @@ from .__xdor_reader import (
 
 from .__xodr_sumo import (
     xodr_to_net_xml,
-    xodr_from_net_xml
+    xodr_from_net_xml,
+    opendrive_to_sumo_net,
+    sumo_net_to_opendrive_map,
 )
 
 # from .web import web_viewer, run_server
@@ -49,6 +51,8 @@ __all__ = [
     # xodr and sumo conversion
     "xodr_to_net_xml",
     "xodr_from_net_xml",
+    "opendrive_to_sumo_net",
+    "sumo_net_to_opendrive_map",
 
     # Web viewer
     "web_viewer",

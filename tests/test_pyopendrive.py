@@ -436,6 +436,60 @@ def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
     assert_vec_finite(odr_map.get_roads()[0].ref_line.get_xyz(0.0))
 
 
+def test_xodr_from_net_xml_restores_road_references_to_planview_roads(
+    tmp_path: Path,
+) -> None:
+    import pyopendrive.__xodr_sumo as xodr_sumo
+
+    net_file = tmp_path / "network.net.xml"
+    net_file.write_text(
+        """<net>
+        <edge id="edge_a"/>
+        <edge id="edge_b"/>
+        </net>""",
+        encoding="utf-8",
+    )
+    xodr_file = tmp_path / "network.xodr"
+    xodr_file.write_text(
+        """<OpenDRIVE>
+        <road id="100" length="10" junction="-1">
+            <link><successor elementType="road" elementId="101" contactPoint="start"/></link>
+            <planView>
+                <geometry s="0" x="0" y="0" hdg="0" length="10"><line/></geometry>
+            </planView>
+        </road>
+        <road id="101" length="10" junction="-1">
+            <link><predecessor elementType="road" elementId="100" contactPoint="end"/></link>
+            <planView>
+                <geometry s="0" x="10" y="0" hdg="0" length="10"><line/></geometry>
+            </planView>
+        </road>
+        <junction id="1">
+            <connection id="0" incomingRoad="100" connectingRoad="101" contactPoint="start"/>
+            <priority high="100" low="101"/>
+        </junction>
+        </OpenDRIVE>""",
+        encoding="utf-8",
+    )
+
+    xodr_sumo._restore_opendrive_ids(xodr_file, net_file)
+
+    root = ET.parse(xodr_file).getroot()
+    roads = {road.get("id"): road for road in root.findall("road")}
+    assert set(roads) == {"edge_a", "edge_b"}
+    assert roads["edge_a"].find("./link/successor").get("elementId") == "edge_b"
+    assert roads["edge_b"].find("./link/predecessor").get("elementId") == "edge_a"
+    assert roads["edge_a"].find("./planView/geometry") is not None
+    assert roads["edge_b"].find("./planView/geometry") is not None
+
+    connection = root.find("./junction/connection")
+    assert connection.get("incomingRoad") == "edge_a"
+    assert connection.get("connectingRoad") == "edge_b"
+    priority = root.find("./junction/priority")
+    assert priority.get("high") == "edge_a"
+    assert priority.get("low") == "edge_b"
+
+
 def test_bad_lane_section_without_center_lane_raises(tmp_path: Path) -> None:
     xodr = tmp_path / "bad.xodr"
     xodr.write_text(
@@ -448,4 +502,3 @@ def test_bad_lane_section_without_center_lane_raises(tmp_path: Path) -> None:
     )
     with pytest.raises(RuntimeError, match="lane section does not have lane #0"):
         odr.OpenDriveMap(str(xodr))
-

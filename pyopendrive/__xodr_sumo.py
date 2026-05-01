@@ -368,6 +368,7 @@ def _restore_opendrive_ids(xodr_file: Path, source_net_file: Path) -> None:
     root = tree.getroot()
     roads = root.findall("road")
     used_ids: set[str] = set()
+    road_id_map: dict[str, str] = {}
     edge_iter = iter(edge_ids)
 
     for road in roads:
@@ -386,10 +387,15 @@ def _restore_opendrive_ids(xodr_file: Path, source_net_file: Path) -> None:
             new_id = _unique_id(old_id, used_ids)
             road.set("id", new_id)
 
+        if old_id:
+            road_id_map[old_id] = new_id
+
         for lane in road.findall("./lanes/laneSection/*/lane"):
             lane_id = lane.get("id")
             if lane_id:
                 _set_xodr_user_data(lane, _ORIGINAL_LANE_ID_PARAM, lane_id)
+
+    _restore_road_references(root, road_id_map)
 
     for junction in root.findall("junction"):
         junction_id = junction.get("id")
@@ -397,6 +403,27 @@ def _restore_opendrive_ids(xodr_file: Path, source_net_file: Path) -> None:
             _set_xodr_user_data(junction, _ORIGINAL_NODE_ID_PARAM, junction_id)
 
     _write_xml(tree, xodr_file)
+
+
+def _restore_road_references(root: ET.Element, road_id_map: Mapping[str, str]) -> None:
+    for road in root.findall("road"):
+        for link in road.findall("./link/*"):
+            if link.get("elementType") == "road":
+                element_id = link.get("elementId")
+                if element_id in road_id_map:
+                    link.set("elementId", road_id_map[element_id])
+
+    for connection in root.findall("./junction/connection"):
+        for attr in ("incomingRoad", "connectingRoad"):
+            road_id = connection.get(attr)
+            if road_id in road_id_map:
+                connection.set(attr, road_id_map[road_id])
+
+    for priority in root.findall("./junction/priority"):
+        for attr in ("high", "low"):
+            road_id = priority.get(attr)
+            if road_id in road_id_map:
+                priority.set(attr, road_id_map[road_id])
 
 
 def _sumo_edge_original_ids(net_file: Path) -> list[str]:
@@ -495,7 +522,26 @@ def _safe_call(obj, name: str):
         return None
 
 
+opendrive_to_sumo_net = xodr_to_net_xml
+
+
+def sumo_net_to_opendrive_map(
+    net: sumolib.net.Net = None,
+    net_file: str | Path | None = None,
+    xodr_file: str | Path | None = None,
+    **kwargs: Any,
+) -> OpenDriveMap:
+    return xodr_from_net_xml(
+        net_file=net_file,
+        xodr_file=xodr_file,
+        net=net,
+        **kwargs,
+    )
+
+
 __all__ = [
     "xodr_to_net_xml",
     "xodr_from_net_xml",
+    "opendrive_to_sumo_net",
+    "sumo_net_to_opendrive_map",
 ]
