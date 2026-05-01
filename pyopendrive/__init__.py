@@ -19,9 +19,8 @@ from .__xdor_reader import (
 )
 
 from .__xodr_sumo import (
-    opendrive_to_sumo_net,
-    sumo_net_to_opendrive_map,
-    xodr_to_sumo_net,
+    xodr_to_net_xml,
+    xodr_from_net_xml
 )
 
 # from .web import web_viewer, run_server
@@ -48,9 +47,8 @@ __all__ = [
     "RoutingGraphEdge",
 
     # xodr and sumo conversion
-    "opendrive_to_sumo_net",
-    "xodr_to_sumo_net",
-    "sumo_net_to_opendrive_map",
+    "xodr_to_net_xml",
+    "xodr_from_net_xml",
 
     # Web viewer
     "web_viewer",

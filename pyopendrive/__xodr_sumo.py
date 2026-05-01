@@ -31,9 +31,12 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, TYPE_CHECKING
 import xml.etree.ElementTree as ET
+from . import OpenDriveMap
 
+if TYPE_CHECKING:
+    import sumolib.net
 
 _SOURCE_NET_FILE_ATTR = "_pyopendrive_sumo_net_file"
 _TEMP_DIR_ATTR = "_pyopendrive_temp_dir"
@@ -101,23 +104,21 @@ def _make_output_path(path: str | Path | None, suffix: str) -> tuple[Path, str |
     return Path(temp_dir) / suffix, temp_dir
 
 
-def xodr_to_sumo_net(
+def xodr_to_net_xml(
     xodr_file: str | Path,
-    *,
     net_file: str | Path | None = None,
+    *,
     netconvert_binary: str | Path | None = None,
     netconvert_options: Mapping[str, Any] | None = None,
     read_options: Mapping[str, Any] | None = None,
     import_all_lanes: bool = True,
     with_internal: bool = True,
-):
+) -> sumolib.net.Net:
     """Convert an OpenDRIVE ``.xodr`` file to a ``sumolib.net.Net`` object.
 
     Args:
         xodr_file: Source OpenDRIVE file.
-        net_file: Optional output SUMO ``.net.xml`` path. When omitted, a
-            temporary file is created and retained through an attribute on the
-            returned ``Net`` object.
+        net_file: output SUMO ``.net.xml`` path.
         netconvert_binary: Optional path or executable name for SUMO
             ``netconvert``. When omitted, ``netconvert`` is resolved from
             ``PATH``.
@@ -130,7 +131,8 @@ def xodr_to_sumo_net(
             ``sumolib.net.readNet`` unless overridden by ``read_options``.
 
     Returns:
-        A ``sumolib.net.Net`` object loaded from the generated SUMO network.
+        sumolib.net.Net: The converted network object.
+            The generated SUMO net XML file is retained and its path is attached to the returned object as an attribute.
 
     Raises:
         RuntimeError: If ``sumolib`` or ``netconvert`` is unavailable, or if
@@ -164,45 +166,31 @@ def xodr_to_sumo_net(
     return net
 
 
-def opendrive_to_sumo_net(*args, **kwargs):
-    """Alias for :func:`xodr_to_sumo_net`.
-
-    Args:
-        *args: Positional arguments forwarded to :func:`xodr_to_sumo_net`.
-        **kwargs: Keyword arguments forwarded to :func:`xodr_to_sumo_net`.
-
-    Returns:
-        The ``sumolib.net.Net`` returned by :func:`xodr_to_sumo_net`.
-    """
-
-    return xodr_to_sumo_net(*args, **kwargs)
-
-
-def sumo_net_to_opendrive_map(
-    net,
-    *,
-    xodr_file: str | Path | None = None,
+def xodr_from_net_xml(
     net_file: str | Path | None = None,
+    xodr_file: str | Path | None = None,
+    *,
+    net: sumolib.net.Net = None,
     netconvert_binary: str | Path | None = None,
     netconvert_options: Mapping[str, Any] | None = None,
     opendrive_map_kwargs: Mapping[str, Any] | None = None,
-):
-    """Convert a ``sumolib.net.Net`` object to :class:`pyopendrive.OpenDriveMap`.
+) -> OpenDriveMap:
+    """Convert a ``.net.xml`` file or ``sumolib.net.Net`` object to :class:`pyopendrive.OpenDriveMap`.
 
     ``sumolib.net.Net`` does not provide a native writer.  If ``net_file`` is not
     passed, this function first reuses the source file attached by
-    :func:`opendrive_to_sumo_net`.  If no source path is available, it writes a
+    :func:`xodr_to_sumo_net`.  If no source path is available, it writes a
     minimal SUMO net XML representation from the in-memory object and passes that
     to ``netconvert``.
 
     Args:
-        net: Source ``sumolib.net.Net`` object.
+        net_file: Optional SUMO ``.net.xml`` path to use as the source for
+            ``netconvert``.
         xodr_file: Optional output OpenDRIVE ``.xodr`` path. When omitted, a
             temporary file is created and retained through an attribute on the
             returned map.
-        net_file: Optional SUMO ``.net.xml`` path to use as the source for
-            ``netconvert``. Use this when ``net`` was loaded from an existing
-            file and does not have a source path attached.
+        net: Optional ``sumolib.net.Net`` object to convert. if net_file is not provided,
+            this is required to resolve the source net.
         netconvert_binary: Optional path or executable name for SUMO
             ``netconvert``. When omitted, ``netconvert`` is resolved from
             ``PATH``.
@@ -218,8 +206,6 @@ def sumo_net_to_opendrive_map(
     Raises:
         RuntimeError: If ``netconvert`` is unavailable or exits with an error.
     """
-
-    from . import OpenDriveMap
 
     source_net_file, temp_dir = _resolve_sumo_net_file(net, net_file)
     output_file, output_temp_dir = _make_output_path(xodr_file, "network.xodr")
@@ -510,7 +496,6 @@ def _safe_call(obj, name: str):
 
 
 __all__ = [
-    "opendrive_to_sumo_net",
-    "xodr_to_sumo_net",
-    "sumo_net_to_opendrive_map",
+    "xodr_to_net_xml",
+    "xodr_from_net_xml",
 ]
