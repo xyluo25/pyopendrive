@@ -204,10 +204,9 @@ def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) ->
     assert [signal.id for signal in synthetic_map.getSignals("1")] == ["sig1"]
     assert synthetic_map.getSignals("2") == []
 
-    lane = synthetic_map.getLane("1", -1, s=1.0)
+    lane = synthetic_map.getLane(-1)
     assert lane.id == -1
-    assert synthetic_map.getLane(lane.key) is lane
-    assert [lane.id for lane in synthetic_map.getLanes("1", s=1.0)] == [-1, 0, 1]
+    assert [lane.id for lane in synthetic_map.getLanes("1")] == [-1, 0, 1]
     assert len(synthetic_map.getLanes()) == 5
 
 
