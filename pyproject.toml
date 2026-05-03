@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyopendrive"
-version = "0.4.3"
-description = "Python tools for reading, inspecting, and converting OpenDRIVE road networks."
+version = "0.4.5"
+description = "Python tools from libOpenDrive for reading, inspecting, converting, and extending OpenDRIVE road networks with additional utility tools."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -38,8 +38,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "loguru>=0.7.0",
-    "sumolib==1.26.0",
+    "loguru",
+    "sumolib",
 ]
 
 [project.optional-dependencies]
@@ -55,14 +55,14 @@ include = ["pyopendrive*"]
 
 [tool.setuptools.package-data]
 pyopendrive = [
-    "__web/index.html",
-    "__web/README.md",
-    "__web/viewer.js",
-    "__web/viewer.wasm",
-    "__web/viewer.data",
-    "__web/viewer.local-assets.js",
-    "__web/favicon.ico",
-    "__web/fonts/*",
+    "web/index.html",
+    "web/README.md",
+    "web/viewer.js",
+    "web/viewer.wasm",
+    "web/viewer.data",
+    "web/viewer.local-assets.js",
+    "web/favicon.ico",
+    "web/fonts/*",
 ]
 "pyopendrive.web" = [
     "index.html",
@@ -74,3 +74,10 @@ pyopendrive = [
     "favicon.ico",
     "fonts/*",
 ]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+# uv publish --index testpypi

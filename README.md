@@ -76,7 +76,7 @@ If `netconvert` is not available, the SUMO helpers will raise an error.
 
 The repository includes a sample map at [datasets/chatt.xodr](datasets/chatt.xodr) and a simple smoke-test script at [tutorial.py](tutorial.py).
 
-There is also a browser-based viewer in [web](web) that can be opened locally or served from a static HTTP server. See [pyopendrive/__web/README.md](pyopendrive/web/README.md) for viewer instructions.
+There is also a browser-based viewer in [web](web) that can be opened locally or served from a static HTTP server. See [pyopendrive/web/README.md](pyopendrive/web/README.md) for viewer instructions.
 
 ## Testing
 
