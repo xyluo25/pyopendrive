@@ -1,4 +1,4 @@
-from .__xdor_reader import (
+from .__xodr_reader import (
     OpenDriveMap,
     readXodr,
     Road,
