@@ -10,7 +10,6 @@ Attributes:
         returned objects may still need their generated files.
 """
 
-
 # Copyright 2026 Xiangyong Luo
 #
 # This file is part of pyopendrive.
@@ -27,6 +26,7 @@ Attributes:
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -158,7 +158,7 @@ def xodr_to_net_xml(
 
     read_kwargs = {"withInternal": with_internal}
     if read_options:
-        read_kwargs.update(read_options)
+        read_kwargs |= read_options
     net = sumo_net.readNet(str(output_file), **read_kwargs)
     setattr(net, _SOURCE_NET_FILE_ATTR, str(output_file))
     if temp_dir is not None:
@@ -170,7 +170,7 @@ def xodr_from_net_xml(
     net_file: str | Path | None = None,
     xodr_file: str | Path | None = None,
     *,
-    net: sumolib.net.Net = None,
+    net: sumolib.net.Net | None = None,
     netconvert_binary: str | Path | None = None,
     netconvert_options: Mapping[str, Any] | None = None,
     opendrive_map_kwargs: Mapping[str, Any] | None = None,
@@ -392,7 +392,7 @@ def _restore_sumo_edge_references(
     for connection in root.findall("connection"):
         for attr in ("from", "to"):
             edge_id = connection.get(attr)
-            if edge_id in edge_id_map:
+            if edge_id is not None and edge_id in edge_id_map:
                 connection.set(attr, edge_id_map[edge_id])
 
 
@@ -456,19 +456,19 @@ def _restore_road_references(root: ET.Element, road_id_map: Mapping[str, str]) -
         for link in road.findall("./link/*"):
             if link.get("elementType") == "road":
                 element_id = link.get("elementId")
-                if element_id in road_id_map:
+                if element_id is not None and element_id in road_id_map:
                     link.set("elementId", road_id_map[element_id])
 
     for connection in root.findall("./junction/connection"):
         for attr in ("incomingRoad", "connectingRoad"):
             road_id = connection.get(attr)
-            if road_id in road_id_map:
+            if road_id is not None and road_id in road_id_map:
                 connection.set(attr, road_id_map[road_id])
 
     for priority in root.findall("./junction/priority"):
         for attr in ("high", "low"):
             road_id = priority.get(attr)
-            if road_id in road_id_map:
+            if road_id is not None and road_id in road_id_map:
                 priority.set(attr, road_id_map[road_id])
 
 
@@ -506,9 +506,7 @@ def _original_lane_id_from_sumo_lane(
         except ValueError:
             index = None
         if index is not None:
-            if edge_id.startswith("-"):
-                return str(-(index + 1))
-            return str(index + 1)
+            return str(-(index + 1)) if edge_id.startswith("-") else str(index + 1)
     if lane_id and "_" in lane_id:
         return lane_id.rsplit("_", 1)[-1]
     return lane_id or ""
@@ -523,10 +521,14 @@ def _set_param(parent: ET.Element, key: str, value: str) -> None:
 
 
 def _get_param(parent: ET.Element, key: str) -> str | None:
-    for param in parent.findall("param"):
-        if param.get("key") == key:
-            return param.get("value")
-    return None
+    return next(
+        (
+            param.get("value")
+            for param in parent.findall("param")
+            if param.get("key") == key
+        ),
+        None,
+    )
 
 
 def _set_xodr_user_data(parent: ET.Element, key: str, value: str) -> None:
@@ -550,11 +552,9 @@ def _unique_id(id_value: str, used_ids: set[str]) -> str:
     return candidate
 
 
-def _write_xml(tree: ET.ElementTree, output_file: Path) -> None:
-    try:
+def _write_xml(tree: ET.ElementTree[Any], output_file: Path) -> None:
+    with contextlib.suppress(AttributeError):
         ET.indent(tree, space="    ")
-    except AttributeError:  # pragma: no cover - Python < 3.9
-        pass
     tree.write(output_file, encoding="utf-8", xml_declaration=True)
 
 
@@ -572,7 +572,7 @@ opendrive_to_sumo_net = xodr_to_net_xml
 
 
 def sumo_net_to_opendrive_map(
-    net: sumolib.net.Net = None,
+    net: sumolib.net.Net | None = None,
     net_file: str | Path | None = None,
     xodr_file: str | Path | None = None,
     **kwargs: Any,

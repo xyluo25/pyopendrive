@@ -67,10 +67,8 @@ class Mesh3D:
 
     def get_obj(self) -> str:
         lines = []
-        for x, y, z in self.vertices:
-            lines.append(f"v {x} {y} {z}")
-        for nx, ny, nz in self.normals:
-            lines.append(f"vn {nx} {ny} {nz}")
+        lines.extend(f"v {x} {y} {z}" for x, y, z in self.vertices)
+        lines.extend(f"vn {nx} {ny} {nz}" for nx, ny, nz in self.normals)
         for i in range(0, len(self.indices), 3):
             tri = self.indices[i: i + 3]
             if len(tri) == 3:
@@ -155,9 +153,7 @@ def _int(node: ET.Element, name: str, default: int = 0) -> int:
 
 def _bool(node: ET.Element, name: str, default: bool = False) -> bool:
     value = node.get(name)
-    if value is None:
-        return default
-    return value.lower() in {"1", "true", "yes"}
+    return default if value is None else value.lower() in {"1", "true", "yes"}
 
 
 def _children(node: Optional[ET.Element], name: str) -> List[ET.Element]:
@@ -166,9 +162,7 @@ def _children(node: Optional[ET.Element], name: str) -> List[ET.Element]:
 
 def _normalize(v: Vec3D) -> Vec3D:
     n = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
-    if n == 0:
-        return (0.0, 0.0, 0.0)
-    return (v[0] / n, v[1] / n, v[2] / n)
+    return (0.0, 0.0, 0.0) if n == 0 else (v[0] / n, v[1] / n, v[2] / n)
 
 
 def _cross(a: Vec3D, b: Vec3D) -> Vec3D:
@@ -182,9 +176,7 @@ def _cross(a: Vec3D, b: Vec3D) -> Vec3D:
 def _next_towards_zero(i: int) -> int:
     if i > 0:
         return i - 1
-    if i < 0:
-        return i + 1
-    return 0
+    return i + 1 if i < 0 else 0
 
 
 def _upper_key(keys: Sequence[float], s: float) -> int:
@@ -434,7 +426,7 @@ class Spiral(RoadGeometry):
         x = y = 0.0
         for i in range(n + 1):
             w = 4 if i % 2 else 2
-            if i == 0 or i == n:
+            if i in [0, n]:
                 w = 1
             th = self._theta(i * h)
             x += w * math.cos(th)
