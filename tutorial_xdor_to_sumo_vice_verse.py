@@ -7,7 +7,7 @@
 '''
 
 from pathlib import Path
-import pyopendrive
+import pyopendrive as odr
 
 if __name__ == "__main__":
 
@@ -15,17 +15,17 @@ if __name__ == "__main__":
     path_sumo = "./datasets/xdor_sumo/chatt.net.xml"
 
     # Load the OpenDRIVE file
-    net_xdor = pyopendrive.OpenDriveMap(path_xodr)
+    net_xdor = odr.readXodr(path_xodr)
 
     # convert to SUMO format
-    net_sumo = pyopendrive.xodr_to_net_xml(
+    net_sumo = odr.xodr_to_net_xml(
         xodr_file=Path(path_xodr).absolute(),
         net_file=Path(path_sumo).absolute(),)
 
-    pyopendrive.xodr_from_net_xml(
+    odr.xodr_from_net_xml(
         net_file=Path(path_sumo).absolute(),
         xodr_file="./datasets/xdor_sumo/chatt_1.xodr")
 
-    pyopendrive.xodr_from_net_xml(
+    odr.xodr_from_net_xml(
         net = net_sumo,
         xodr_file="./datasets/xdor_sumo/chatt_1.xodr")

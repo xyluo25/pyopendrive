@@ -15,10 +15,10 @@ import webbrowser
 WEB_DIR = Path(__file__).resolve().parent
 INDEX_HTML = WEB_DIR / "index.html"
 
-__all__ = ["web_viewer"]
+__all__ = ["xodr_web_viewer"]
 
 
-def web_viewer(index_html: str | Path = INDEX_HTML) -> Path:
+def xodr_web_viewer(index_html: str | Path = INDEX_HTML) -> Path:
     """Open the bundled viewer in the default browser.
 
     Args:

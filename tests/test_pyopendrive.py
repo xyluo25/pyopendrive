@@ -133,21 +133,49 @@ def synthetic_file(tmp_path: Path) -> Path:
 
 @pytest.fixture()
 def synthetic_map(synthetic_file: Path) -> odr.OpenDriveMap:
-    return odr.OpenDriveMap(str(synthetic_file))
+    return odr.readXodr(synthetic_file)
 
 
 def assert_vec_finite(vec: tuple[float, ...]) -> None:
     assert all(math.isfinite(v) for v in vec)
 
 
+def elems_by_id(root: ET.Element, tag: str) -> dict[str, ET.Element]:
+  """Return a dict mapping element id to element for all elements matching tag.
+
+  Elements without an 'id' attribute are skipped so the returned dict has
+  only string keys (matching the declared return type).
+  """
+  elems: dict[str, ET.Element] = {}
+  for e in root.findall(tag):
+    _id = e.get("id")
+    if _id is not None:
+      elems[_id] = e
+  return elems
+
+
+def test_open_drive_map_can_be_built_empty_with_add_methods() -> None:
+    odr_map = odr.OpenDriveMap()
+    road = odr.xodr.Road("manual_road", 10.0, "-1", "manual")
+    junction = odr.xodr.Junction("manual junction", "manual_junction")
+
+    assert odr_map.getRoads() == []
+    assert odr_map.addRoad(road) is road
+    assert odr_map.addJunction(junction) is junction
+
+    assert odr_map.getRoad("manual_road") is road
+    assert odr_map.getJunction("manual_junction") is junction
+
+
 def test_synthetic_map_parses_roads_junctions_and_metadata(
     synthetic_map: odr.OpenDriveMap,
 ) -> None:
     assert synthetic_map.proj4.startswith("+proj=tmerc")
-    assert len(synthetic_map.get_roads()) == 2
-    assert len(synthetic_map.get_junctions()) == 1
+    assert synthetic_map.getGeoProj().startswith("+proj=tmerc")
+    assert len(synthetic_map.getRoads()) == 2
+    assert len(synthetic_map.getJunctions()) == 1
 
-    road = synthetic_map.get_road("1")
+    road = synthetic_map.getRoad("1")
     assert road.name == "main"
     assert road.successor.type == "junction"
     assert road.neighbors[0].id == "2"
@@ -155,21 +183,39 @@ def test_synthetic_map_parses_roads_junctions_and_metadata(
     assert road.s_to_speed[0.0].max == "35"
     assert len(road.ref_line.get_geometries()) == 4
 
-    connector = synthetic_map.get_road("2")
+    connector = synthetic_map.getRoad("2")
     assert connector.left_hand_traffic is True
     assert connector.predecessor.id == "1"
 
-    junction = synthetic_map.get_junction("10")
+    junction = synthetic_map.getJunction("10")
     assert junction.id_to_connection["0"].lane_links[0].from_lane == -1
     assert junction.priorities[0].high == "1"
     assert junction.id_to_controller["ctrl"].sequence == 1
+
+
+def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) -> None:
+    west, south, east, north = synthetic_map.getBoundary()
+    assert west <= east
+    assert south <= north
+
+    assert synthetic_map.getSignal("sig1").id == "sig1"
+    assert synthetic_map.getSignal("sig1", road_id="1").road_id == "1"
+    assert [signal.id for signal in synthetic_map.getSignals()] == ["sig1"]
+    assert [signal.id for signal in synthetic_map.getSignals("1")] == ["sig1"]
+    assert synthetic_map.getSignals("2") == []
+
+    lane = synthetic_map.getLane("1", -1, s=1.0)
+    assert lane.id == -1
+    assert synthetic_map.getLane(lane.key) is lane
+    assert [lane.id for lane in synthetic_map.getLanes("1", s=1.0)] == [-1, 0, 1]
+    assert len(synthetic_map.getLanes()) == 5
 
 
 def test_open_drive_map_save_xodr_preserves_loaded_xml(
     synthetic_map: odr.OpenDriveMap,
     tmp_path: Path,
 ) -> None:
-    saved = synthetic_map.save_xodr(tmp_path / "nested" / "saved.xodr")
+    saved = synthetic_map.saveXodr(tmp_path / "nested" / "saved.xodr")
 
     assert saved == tmp_path / "nested" / "saved.xodr"
     assert saved.exists()
@@ -179,15 +225,15 @@ def test_open_drive_map_save_xodr_preserves_loaded_xml(
     assert root.find("./road[@id='1']") is not None
     assert root.find("./junction[@id='10']") is not None
 
-    reloaded = odr.load(saved)
-    assert len(reloaded.get_roads()) == len(synthetic_map.get_roads())
-    assert len(reloaded.get_junctions()) == len(synthetic_map.get_junctions())
+    reloaded = odr.readXodr(saved)
+    assert len(reloaded.getRoads()) == len(synthetic_map.getRoads())
+    assert len(reloaded.getJunctions()) == len(synthetic_map.getJunctions())
 
 
 def test_lane_queries_roadmarks_and_surface_points(
     synthetic_map: odr.OpenDriveMap,
 ) -> None:
-    road = synthetic_map.get_road("1")
+    road = synthetic_map.getRoad("1")
     section = road.get_lanesection(1.0)
     lanes = section.get_lanes()
     assert [lane.id for lane in lanes] == [-1, 0, 1]
@@ -216,7 +262,7 @@ def test_lane_queries_roadmarks_and_surface_points(
 
 
 def test_objects_signals_mesh_and_routing(synthetic_map: odr.OpenDriveMap) -> None:
-    road = synthetic_map.get_road("1")
+    road = synthetic_map.getRoad("1")
     road_object = road.id_to_object["obj1"]
     signal = road.id_to_signal["sig1"]
 
@@ -239,16 +285,16 @@ def test_objects_signals_mesh_and_routing(synthetic_map: odr.OpenDriveMap) -> No
     )
     assert len(roadmark_mesh.vertices) >= 4
 
-    network_mesh = synthetic_map.get_road_network_mesh(eps=4.0)
+    network_mesh = synthetic_map.getRoadNetworkMesh(eps=4.0)
     assert len(network_mesh.lanes_mesh.vertices) > 0
     assert len(network_mesh.roadmarks_mesh.vertices) > 0
     assert len(network_mesh.get_mesh().vertices) >= len(
         network_mesh.lanes_mesh.vertices
     )
 
-    graph = synthetic_map.get_routing_graph()
-    start = odr.LaneKey("1", 0.0, -1)
-    end = odr.LaneKey("2", 0.0, -1)
+    graph = synthetic_map.getRoutingGraph()
+    start = odr.xodr.LaneKey("1", 0.0, -1)
+    end = odr.xodr.LaneKey("2", 0.0, -1)
     assert end in graph.get_lane_successors(start)
     assert graph.get_lane_predecessors(end)
     assert graph.shortest_path(start, end) == [start, end]
@@ -262,20 +308,20 @@ def test_centering_and_outline_z_mode(synthetic_file: Path) -> None:
     )
     assert centered.x_offs > 0
     assert centered.y_offs > 0
-    road_object = centered.get_road("1").id_to_object["obj1"]
+    road_object = centered.getRoad("1").id_to_object["obj1"]
     assert road_object.outlines[0].outline[0].type == "local_abs_z"
 
 
 def test_geometry_and_spline_helpers() -> None:
-    poly = odr.Poly3.from_odr(2.0, 1.0, 2.0, 3.0, 4.0)
+    poly = odr.xodr.Poly3.from_odr(2.0, 1.0, 2.0, 3.0, 4.0)
     assert math.isfinite(poly.get(3.0))
     assert math.isfinite(poly.get_grad(3.0))
     assert not poly.isnan()
     assert poly.negate().get(3.0) == pytest.approx(-poly.get(3.0))
     assert len(poly.approximate_linear(0.5, 0.0, 2.0)) >= 2
 
-    spline = odr.CubicSpline({0.0: odr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)})
-    other = odr.CubicSpline({1.0: odr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)})
+    spline = odr.xodr.CubicSpline({0.0: odr.xodr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)})
+    other = odr.xodr.CubicSpline({1.0: odr.xodr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)})
     assert spline.size() == 1
     assert not spline.empty()
     assert spline.get(0.5) == pytest.approx(1.0)
@@ -283,10 +329,10 @@ def test_geometry_and_spline_helpers() -> None:
     assert spline.negate().get(0.0) == pytest.approx(-1.0)
     assert len(spline.approximate_linear(0.5, 0.0, 2.0)) >= 2
 
-    line = odr.Line(0.0, 0.0, 0.0, 0.0, 10.0)
-    arc = odr.Arc(0.0, 0.0, 0.0, 0.0, 10.0, 0.1)
-    spiral = odr.Spiral(0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.1)
-    param = odr.ParamPoly3(
+    line = odr.xodr.Line(0.0, 0.0, 0.0, 0.0, 10.0)
+    arc = odr.xodr.Arc(0.0, 0.0, 0.0, 0.0, 10.0, 0.1)
+    spiral = odr.xodr.Spiral(0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.1)
+    param = odr.xodr.ParamPoly3(
         0.0,
         0.0,
         0.0,
@@ -306,9 +352,9 @@ def test_geometry_and_spline_helpers() -> None:
         assert_vec_finite(geom.get_grad(5.0))
         assert len(geom.approximate_linear(1.0)) >= 2
 
-    ref_line = odr.RefLine("r", 10.0)
+    ref_line = odr.xodr.RefLine("r", 10.0)
     ref_line.s0_to_geometry[0.0] = line
-    ref_line.elevation_profile.s0_to_poly[0.0] = odr.Poly3.from_odr(
+    ref_line.elevation_profile.s0_to_poly[0.0] = odr.xodr.Poly3.from_odr(
         0.0,
         0.0,
         0.0,
@@ -322,20 +368,20 @@ def test_geometry_and_spline_helpers() -> None:
 
 
 def test_mesh_obj_and_routing_unreachable() -> None:
-    mesh = odr.Mesh3D(vertices=[(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)])
+    mesh = odr.xodr.Mesh3D(vertices=[(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)])
     mesh.indices.extend([0, 1, 2])
     mesh.normals.append((0.0, 0.0, 1.0))
     obj_text = mesh.get_obj()
     assert "v 0.0 0.0 0.0" in obj_text
     assert "f 1 2 3" in obj_text
 
-    other = odr.Mesh3D(vertices=[(0.0, 0.0, 1.0)])
+    other = odr.xodr.Mesh3D(vertices=[(0.0, 0.0, 1.0)])
     mesh.add_mesh(other)
     assert len(mesh.vertices) == 4
 
-    graph = odr.RoutingGraph()
-    a = odr.LaneKey("a", 0.0, -1)
-    b = odr.LaneKey("b", 0.0, -1)
+    graph = odr.xodr.RoutingGraph()
+    a = odr.xodr.LaneKey("a", 0.0, -1)
+    b = odr.xodr.LaneKey("b", 0.0, -1)
     assert graph.shortest_path(a, b) == []
     assert a.to_string() == "a/0.000000/-1"
 
@@ -343,15 +389,16 @@ def test_mesh_obj_and_routing_unreachable() -> None:
 def test_real_chatt_file_smoke() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     xodr = repo_root / "datasets/chatt.xodr"
-    odr_map = odr.load(xodr)
+    odr_map = odr.readXodr(xodr)
 
-    assert len(odr_map.get_roads()) == 189
-    assert len(odr_map.get_junctions()) == 24
-    first = odr_map.get_roads()[0]
+    assert len(odr_map.getRoads()) == 189
+    assert len(odr_map.getJunctions()) == 24
+    assert odr_map.getBoundary() == pytest.approx((0.0, 0.0, 1377.14, 919.81))
+    first = odr_map.getRoads()[0]
     assert len(first.get_lanesections()) == 1
     assert_vec_finite(first.ref_line.get_xyz(0.0))
 
-    graph = odr_map.get_routing_graph()
+    graph = odr_map.getRoutingGraph()
     assert len(graph.edges) == 474
 
 
@@ -365,7 +412,7 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     net_file = tmp_path / "chatt.net.xml"
     roundtrip_xodr = tmp_path / "chatt_roundtrip.xodr"
 
-    sumo_net = odr.opendrive_to_sumo_net(
+    sumo_net = odr.xodr_to_net_xml(
         xodr,
         net_file=net_file,
         netconvert_options={"no-turnarounds": True},
@@ -382,19 +429,19 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     assert edge_280.getLanes()[1].getParam("pyopendrive.original_lane_id") == "-2"
     assert sumo_net.getNode("1").getParam("pyopendrive.original_node_id") == "1"
 
-    roundtrip_map = odr.sumo_net_to_opendrive_map(
-        sumo_net,
+    roundtrip_map = odr.xodr_from_net_xml(
+        net=sumo_net,
         xodr_file=roundtrip_xodr,
     )
 
     assert isinstance(roundtrip_map, odr.OpenDriveMap)
     assert roundtrip_xodr.exists()
-    assert len(roundtrip_map.get_roads()) > 0
-    assert len(roundtrip_map.get_junctions()) > 0
-    assert roundtrip_map.get_road("280").id == "280"
-    assert roundtrip_map.get_road("280").get_lanesections()[0].get_lane(-1).id == -1
-    assert roundtrip_map.get_road("280").get_lanesections()[0].get_lane(-2).id == -2
-    assert_vec_finite(roundtrip_map.get_roads()[0].ref_line.get_xyz(0.0))
+    assert len(roundtrip_map.getRoads()) > 0
+    assert len(roundtrip_map.getJunctions()) > 0
+    assert roundtrip_map.getRoad("280").id == "280"
+    assert roundtrip_map.getRoad("280").get_lanesections()[0].get_lane(-1).id == -1
+    assert roundtrip_map.getRoad("280").get_lanesections()[0].get_lane(-2).id == -2
+    assert_vec_finite(roundtrip_map.getRoads()[0].ref_line.get_xyz(0.0))
 
 
 def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
@@ -424,15 +471,19 @@ def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
     root = ET.parse(net_file).getroot()
     edges = {edge.get("id"): edge for edge in root.findall("edge")}
     assert set(edges) == {"280", "281"}
-    assert edges["280"].find("./param").get("value") == "280"
+    param = edges["280"].find("./param")
+    assert param is not None
+    assert param.get("value") == "280"
     assert [lane.get("id") for lane in edges["280"].findall("lane")] == [
         "280_0",
         "280_1",
     ]
-    assert [
-        lane.find("./param").get("value")
-        for lane in edges["280"].findall("lane")
-    ] == ["-1", "-2"]
+    lane_params = []
+    for lane in edges["280"].findall("lane"):
+      lane_param = lane.find("./param")
+      assert lane_param is not None
+      lane_params.append(lane_param.get("value"))
+    assert lane_params == ["-1", "-2"]
 
     connections = root.findall("connection")
     assert connections[0].get("from") == "280"
@@ -456,16 +507,16 @@ def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
     assert len(sumo_net.getNodes()) > 0
     assert len(sumo_net.getEdges()) > 0
 
-    odr_map = odr.sumo_net_to_opendrive_map(
-        sumo_net,
+    odr_map = odr.xodr_from_net_xml(
+        net=sumo_net,
         net_file=net_file,
         xodr_file=roundtrip_xodr,
     )
 
     assert isinstance(odr_map, odr.OpenDriveMap)
     assert roundtrip_xodr.exists()
-    assert len(odr_map.get_roads()) > 0
-    assert len(odr_map.get_junctions()) > 0
+    assert len(odr_map.getRoads()) > 0
+    assert len(odr_map.getJunctions()) > 0
     source_edge_ids = [
         edge.get("id")
         for edge in ET.parse(net_file).getroot().findall("edge")
@@ -477,7 +528,7 @@ def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
         if road.get("junction", "-1") == "-1"
     ]
     assert roundtrip_road_ids[: len(source_edge_ids)] == source_edge_ids
-    assert_vec_finite(odr_map.get_roads()[0].ref_line.get_xyz(0.0))
+    assert_vec_finite(odr_map.getRoads()[0].ref_line.get_xyz(0.0))
 
 
 def test_xodr_from_net_xml_restores_road_references_to_planview_roads(
@@ -521,17 +572,19 @@ def test_xodr_from_net_xml_restores_road_references_to_planview_roads(
     root = ET.parse(xodr_file).getroot()
     roads = {road.get("id"): road for road in root.findall("road")}
     assert set(roads) == {"edge_a", "edge_b"}
-    assert roads["edge_a"].find("./link/successor").get("elementId") == "edge_b"
-    assert roads["edge_b"].find("./link/predecessor").get("elementId") == "edge_a"
+    succ = roads["edge_a"].find("./link/successor")
+    assert succ is not None and succ.get("elementId") == "edge_b"
+    pred = roads["edge_b"].find("./link/predecessor")
+    assert pred is not None and pred.get("elementId") == "edge_a"
     assert roads["edge_a"].find("./planView/geometry") is not None
     assert roads["edge_b"].find("./planView/geometry") is not None
 
     connection = root.find("./junction/connection")
-    assert connection.get("incomingRoad") == "edge_a"
-    assert connection.get("connectingRoad") == "edge_b"
+    assert connection is not None and connection.get("incomingRoad") == "edge_a"
+    assert connection is not None and connection.get("connectingRoad") == "edge_b"
     priority = root.find("./junction/priority")
-    assert priority.get("high") == "edge_a"
-    assert priority.get("low") == "edge_b"
+    assert priority is not None and priority.get("high") == "edge_a"
+    assert priority is not None and priority.get("low") == "edge_b"
 
 
 def test_bad_lane_section_without_center_lane_raises(tmp_path: Path) -> None:

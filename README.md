@@ -25,21 +25,13 @@ The package depends on `sumolib` for SUMO conversion support. To use the SUMO co
 Load an OpenDRIVE map and inspect its contents:
 
 ```python
-from pyopendrive import OpenDriveMap
+from pyopendrive import readXodr
 
-odr_map = OpenDriveMap("datasets/chatt.xodr")
+odr_map = readXodr("datasets/chatt.xodr")
 
-print(len(odr_map.get_roads()))
-print(len(odr_map.get_junctions()))
-print(odr_map.get_road("1").name)
-```
-
-The package also exposes a convenience loader:
-
-```python
-from pyopendrive import load
-
-odr_map = load("datasets/chatt.xodr")
+print(len(odr_map.getRoads()))
+print(len(odr_map.getJunctions()))
+print(odr_map.getRoad("1").name)
 ```
 
 ## Common Tasks
@@ -47,13 +39,13 @@ odr_map = load("datasets/chatt.xodr")
 ### Save a map back to OpenDRIVE
 
 ```python
-saved_path = odr_map.save_xodr("output/saved.xodr")
+saved_path = odr_map.saveXodr("output/saved.xodr")
 ```
 
 ### Query lane geometry
 
 ```python
-road = odr_map.get_road("1")
+road = odr_map.getRoad("1")
 section = road.get_lanesection(0.0)
 lane = section.get_lane(1)
 
@@ -65,10 +57,17 @@ roadmarks = lane.get_roadmarks(0.0, road.length)
 ### Convert to and from SUMO
 
 ```python
-from pyopendrive import opendrive_to_sumo_net, sumo_net_to_opendrive_map
+from pyopendrive import xodr_to_net_xml, xodr_from_net_xml
 
-sumo_net = opendrive_to_sumo_net("datasets/chatt.xodr", net_file="build/chatt.net.xml")
-roundtrip_map = sumo_net_to_opendrive_map(sumo_net, xodr_file="build/chatt_roundtrip.xodr")
+xodr_file = "datasets/chatt.xodr"
+net_file = "datasets/chatt.net.xml"
+
+sumo_net = xodr_to_net_xml(xodr_file, net_file)
+roundtrip_map = xodr_from_net_xml(net_file, xodr_file)
+
+# SUMO Net object as input to save to xodr
+# roundtrip_map = xodr_from_net_xml(net=sumo_net, xodr_file="build/chatt_roundtrip.xodr")
+
 ```
 
 If `netconvert` is not available, the SUMO helpers will raise an error.

@@ -5,22 +5,18 @@ Run from the repository root:
     python -m pyopendrive.example_chatt
 """
 
-from pathlib import Path
-import pyopendrive
-from pyopendrive import OpenDriveMap
-import sumolib
+import pyopendrive as odr
 
 
 if __name__ == "__main__":
     xodr = "./datasets/chatt.xodr"
-    odr_map = OpenDriveMap(str(xodr))
+    odr_map = odr.readXodr(xodr)
 
-    roads = odr_map.get_roads()
-    junctions = odr_map.get_junctions()
-    graph = odr_map.get_routing_graph()
+    roads = odr_map.getRoads()
+    junctions = odr_map.getJunctions()
+    graph = odr_map.getRoutingGraph()
 
-    lane_count = sum(len(section.id_to_lane)
-                     for road in roads for section in road.get_lanesections())
+    lane_count = len(odr_map.getLanes())
     geometry_count = sum(len(road.ref_line.s0_to_geometry) for road in roads)
     object_count = sum(len(road.id_to_object) for road in roads)
     signal_count = sum(len(road.id_to_signal) for road in roads)

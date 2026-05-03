@@ -1148,11 +1148,17 @@ class RoutingGraph:
 
 
 class OpenDriveMap:
-    """Parse an OpenDRIVE ``.xodr`` file into Python road-network objects."""
+    """Mutable OpenDRIVE road-network object.
+
+    The map can be created empty with ``OpenDriveMap()`` and populated with
+    methods such as :meth:`addRoad` and :meth:`addJunction`. Use
+    :func:`readXodr` to load an existing ``.xodr`` file into an
+    :class:`OpenDriveMap`.
+    """
 
     def __init__(
         self,
-        xodr_file: str,
+        xodr_file: str | Path | None = None,
         center_map: bool = False,
         with_road_objects: bool = True,
         with_lateral_profile: bool = True,
@@ -1161,12 +1167,69 @@ class OpenDriveMap:
         fix_spiral_edge_cases: bool = True,
         with_road_signals: bool = True,
     ):
-        self.xodr_file = str(xodr_file)
+        self.xodr_file = "" if xodr_file is None else str(xodr_file)
         self.proj4 = ""
         self.x_offs = 0.0
         self.y_offs = 0.0
         self.id_to_road: Dict[str, Road] = {}
         self.id_to_junction: Dict[str, Junction] = {}
+        self.root = ET.Element("OpenDRIVE")
+        self.tree = ET.ElementTree(self.root)
+        self.xml_doc = self.tree
+        self.xml_parse_result = True
+        if xodr_file is not None:
+            self.loadXodr(
+                xodr_file,
+                center_map=center_map,
+                with_road_objects=with_road_objects,
+                with_lateral_profile=with_lateral_profile,
+                with_lane_height=with_lane_height,
+                abs_z_for_for_local_road_obj_outline=(
+                    abs_z_for_for_local_road_obj_outline
+                ),
+                fix_spiral_edge_cases=fix_spiral_edge_cases,
+                with_road_signals=with_road_signals,
+            )
+
+    def loadXodr(
+        self,
+        xodr_file: str | Path,
+        *,
+        center_map: bool = False,
+        with_road_objects: bool = True,
+        with_lateral_profile: bool = True,
+        with_lane_height: bool = True,
+        abs_z_for_for_local_road_obj_outline: bool = False,
+        fix_spiral_edge_cases: bool = True,
+        with_road_signals: bool = True,
+        clear: bool = True,
+    ) -> "OpenDriveMap":
+        """Load an OpenDRIVE file into this map and return ``self``.
+
+        Args:
+            xodr_file: Source OpenDRIVE ``.xodr`` path.
+            center_map: Whether to subtract the mean plan-view geometry origin.
+            with_road_objects: Whether to parse road objects.
+            with_lateral_profile: Whether to parse superelevation/crossfall.
+            with_lane_height: Whether to parse lane height records.
+            abs_z_for_for_local_road_obj_outline: Whether local object outlines
+                should be marked as absolute-z outlines.
+            fix_spiral_edge_cases: Whether degenerate spirals become line/arc
+                geometries.
+            with_road_signals: Whether to parse road signals.
+            clear: Whether to clear existing roads and junctions first.
+
+        Returns:
+            This :class:`OpenDriveMap` instance.
+        """
+
+        self.xodr_file = str(xodr_file)
+        self.proj4 = ""
+        self.x_offs = 0.0
+        self.y_offs = 0.0
+        if clear:
+            self.id_to_road.clear()
+            self.id_to_junction.clear()
         self.tree = ET.parse(xodr_file)
         self.root = self.tree.getroot()
         self.xml_doc = self.tree
@@ -1180,19 +1243,69 @@ class OpenDriveMap:
             fix_spiral_edge_cases,
             with_road_signals,
         )
+        return self
 
-    def save_xodr(
+    def addRoad(self, road: Road, *, replace: bool = False) -> Road:
+        """Add a :class:`Road` to the map and return the stored road.
+
+        If ``replace`` is false and the id already exists, ``"_dup"`` suffixes
+        are appended, matching the reader's duplicate-id behavior.
+        """
+
+        road_id = road.id
+        if not replace:
+            while road_id in self.id_to_road:
+                road_id += "_dup"
+            if road_id != road.id:
+                road.id = road_id
+                road.ref_line.road_id = road_id
+        self.id_to_road[road_id] = road
+        if road.xml_node is None:
+            road.xml_node = self._road_to_xml(road)
+        if road.xml_node is not None and road.xml_node not in list(self.root):
+            self.root.append(road.xml_node)
+
+        return road
+
+    def addJunction(
+        self, junction: Junction, *, replace: bool = False
+    ) -> Junction:
+        """Add a :class:`Junction` to the map and return the stored junction."""
+
+        junction_id = junction.id
+        if not replace:
+            while junction_id in self.id_to_junction:
+                junction_id += "_dup"
+            if junction_id != junction.id:
+                junction.id = junction_id
+        self.id_to_junction[junction_id] = junction
+
+        existing_junction_xml = next(
+            (
+                node
+                for node in self.root.findall("junction")
+                if node.get("id") == junction.id
+            ),
+            None,
+        )
+        if existing_junction_xml is None:
+            self.root.append(self._junction_to_xml(junction))
+
+        return junction
+
+    def saveXodr(
         self,
         xodr_file: str | Path,
         *,
         encoding: str = "utf-8",
         xml_declaration: bool = True,
     ) -> Path:
-        """Save the loaded OpenDRIVE XML data to an ``.xodr`` file.
+        """Save the map's OpenDRIVE XML data to an ``.xodr`` file.
 
-        This writes the XML tree that was loaded by :class:`OpenDriveMap`.
-        Parsed Python objects are not re-serialized, so unchanged source
-        metadata and unsupported OpenDRIVE elements are preserved.
+        This writes the XML tree currently attached to the map. Parsed Python
+        objects are not fully re-serialized, so unchanged source metadata and
+        unsupported OpenDRIVE elements are preserved when the map was loaded
+        from a file.
 
         Args:
             xodr_file: Destination OpenDRIVE ``.xodr`` path.
@@ -1212,41 +1325,103 @@ class OpenDriveMap:
         )
         return output_path
 
-    def save_to_xodr(
-        self,
-        xodr_file: str | Path,
-        *,
-        encoding: str = "utf-8",
-        xml_declaration: bool = True,
-    ) -> Path:
-        """Alias for :meth:`save_xodr`.
-
-        Args:
-            xodr_file: Destination OpenDRIVE ``.xodr`` path.
-            encoding: Output text encoding.
-            xml_declaration: Whether to include the XML declaration.
-
-        Returns:
-            The destination path as a :class:`pathlib.Path`.
-        """
-
-        return self.save_xodr(
-            xodr_file,
-            encoding=encoding,
-            xml_declaration=xml_declaration,
-        )
-
-    def get_road(self, id: str) -> Road:
+    def getRoad(self, id: str) -> Road:
         return self.id_to_road[id]
 
-    def get_roads(self) -> List[Road]:
+    def getRoads(self) -> List[Road]:
         return list(self.id_to_road.values())
 
-    def get_junction(self, id: str) -> Junction:
+    def getJunction(self, id: str) -> Junction:
         return self.id_to_junction[id]
 
-    def get_junctions(self) -> List[Junction]:
+    def getJunctions(self) -> List[Junction]:
         return list(self.id_to_junction.values())
+
+    def getGeoProj(self) -> str:
+        """Return the OpenDRIVE header ``geoReference`` projection string."""
+
+        return self.proj4
+
+    def getBoundary(self) -> Tuple[float, float, float, float]:
+        """Return map bounds as ``(west, south, east, north)``.
+
+        Header bounds are used when available. For manually-created maps with
+        no header bounds, the bounds are estimated from reference-line samples.
+        """
+
+        header = self.root.find("header")
+        if header is not None:
+            values = [
+                _float(header, "west", math.nan),
+                _float(header, "south", math.nan),
+                _float(header, "east", math.nan),
+                _float(header, "north", math.nan),
+            ]
+            if all(math.isfinite(value) for value in values):
+                return (values[0], values[1], values[2], values[3])
+
+        xs: List[float] = []
+        ys: List[float] = []
+        for road in self.getRoads():
+            if not road.ref_line.s0_to_geometry:
+                continue
+            samples = road.ref_line.approximate_linear(5.0, 0.0, road.length)
+            for s in samples:
+                x, y, _ = road.ref_line.get_xyz(s)
+                xs.append(x)
+                ys.append(y)
+        if not xs or not ys:
+            return (0.0, 0.0, 0.0, 0.0)
+        return (min(xs), min(ys), max(xs), max(ys))
+
+    def getSignal(self, id: str, road_id: Optional[str] = None) -> RoadSignal:
+        """Return a signal by id, optionally scoped to one road."""
+
+        roads = [self.getRoad(road_id)] if road_id is not None else self.getRoads()
+        for road in roads:
+            signal = road.id_to_signal.get(id)
+            if signal is not None:
+                return signal
+        raise KeyError(id)
+
+    def getSignals(self, road_id: Optional[str] = None) -> List[RoadSignal]:
+        """Return all signals, optionally scoped to one road."""
+
+        roads = [self.getRoad(road_id)] if road_id is not None else self.getRoads()
+        return [
+            signal
+            for road in roads
+            for signal in road.get_road_signals()
+        ]
+
+    def getLane(
+        self,
+        lane_id: Optional[int] = None,
+    ) -> Lane:
+        """Return a lane by road id and lane id, or by :class:`LaneKey`."""
+
+        if lane_id is None:
+            raise TypeError("lane_id must be provided")
+
+        lanes = self.getLanes()
+        for lane in lanes:
+            if lane.id == lane_id:
+                return lane
+        raise KeyError(f"Lane with id {lane_id} not found")
+
+    def getLanes(
+        self,
+        road_id: Optional[str] = None,
+    ) -> List[Lane]:
+        """Return lanes for the map, a road, or a road section at ``s``."""
+
+        roads = [self.getRoad(road_id)] if road_id is not None else self.getRoads()
+        lanes: List[Lane] = []
+        for road in roads:
+            sections = road.get_lanesections()
+            for section in sections:
+                lanes.extend(section.get_lanes())
+        return lanes
 
     def _parse(
         self,
@@ -1271,8 +1446,6 @@ class OpenDriveMap:
         self._parse_junctions()
         for road_node in self.root.findall("road"):
             road_id = road_node.get("id", "")
-            while road_id in self.id_to_road:
-                road_id += "_dup"
             road = Road(
                 road_id,
                 max(0.0, _float(road_node, "length")),
@@ -1281,7 +1454,7 @@ class OpenDriveMap:
                 road_node.get("rule", "RHT").lower() == "lht",
             )
             road.xml_node = road_node
-            self.id_to_road[road_id] = road
+            self.addRoad(road)
             self._parse_road_links(road, road_node)
             self._parse_types(road, road_node)
             self._parse_ref_line(road, road_node, fix_spiral_edge_cases)
@@ -1296,7 +1469,6 @@ class OpenDriveMap:
         for jn in self.root.findall("junction"):
             jid = jn.get("id", "")
             junction = Junction(jn.get("name", ""), jid)
-            self.id_to_junction[jid] = junction
             for cn in jn.findall("connection"):
                 cp = cn.get("contactPoint", "start")
                 conn = JunctionConnection(
@@ -1320,6 +1492,7 @@ class OpenDriveMap:
                         "type", ""), _int(ctrl, "sequence")
                 )
                 junction.id_to_controller[controller.id] = controller
+            self.addJunction(junction)
 
     def _parse_road_links(self, road: Road, road_node: ET.Element) -> None:
         link = road_node.find("link")
@@ -1682,7 +1855,7 @@ class OpenDriveMap:
             sig.lane_validities = self._validities(sig_node)
             road.id_to_signal[sid] = sig
 
-    def get_road_network_mesh(self, eps: float) -> RoadNetworkMesh:
+    def getRoadNetworkMesh(self, eps: float) -> RoadNetworkMesh:
         out = RoadNetworkMesh()
         for road in self.id_to_road.values():
             out.lanes_mesh.road_start_indices[len(
@@ -1730,7 +1903,7 @@ class OpenDriveMap:
                 ] = sig.id
         return out
 
-    def get_routing_graph(self) -> RoutingGraph:
+    def getRoutingGraph(self) -> RoutingGraph:
         graph = RoutingGraph()
         for road in self.id_to_road.values():
             sections = road.get_lanesections()
@@ -1809,25 +1982,279 @@ class OpenDriveMap:
         sections = road.get_lanesections()
         return sections[0] if link.contact_point == "start" else sections[-1]
 
+    def _road_to_xml(self, road: Road) -> ET.Element:
+        """Serialize the small subset used by this tutorial."""
+
+        road_node = ET.Element(
+            "road",
+            {
+                "name": road.name,
+                "length": str(road.length),
+                "id": road.id,
+                "junction": road.junction,
+                "rule": "RHT",
+            },
+        )
+
+        link_node = ET.SubElement(road_node, "link")
+        if road.predecessor.type != "none":
+            ET.SubElement(
+                link_node,
+                "predecessor",
+                {
+                    "elementType": road.predecessor.type,
+                    "elementId": road.predecessor.id,
+                    "contactPoint": road.predecessor.contact_point,
+                },
+            )
+        if road.successor.type != "none":
+            ET.SubElement(
+                link_node,
+                "successor",
+                {
+                    "elementType": road.successor.type,
+                    "elementId": road.successor.id,
+                    "contactPoint": road.successor.contact_point,
+                },
+            )
+
+        for s, road_type in sorted(road.s_to_type.items()):
+            road_type_node = ET.SubElement(
+                road_node,
+                "type",
+                {"s": str(s), "type": road_type},
+            )
+            speed = road.s_to_speed.get(s)
+            if speed is not None:
+                ET.SubElement(
+                    road_type_node,
+                    "speed",
+                    {"max": speed.max, "unit": speed.unit},
+                )
+
+        plan_view = ET.SubElement(road_node, "planView")
+        for geom in road.ref_line.get_geometries():
+            geom_node = ET.SubElement(
+                plan_view,
+                "geometry",
+                {
+                    "s": str(geom.s0),
+                    "x": str(geom.x0),
+                    "y": str(geom.y0),
+                    "hdg": str(geom.hdg0),
+                    "length": str(geom.length),
+                },
+            )
+            if isinstance(geom, Arc):
+                ET.SubElement(geom_node, "arc", {"curvature": str(geom.curvature)})
+            elif isinstance(geom, Spiral):
+                ET.SubElement(
+                    geom_node,
+                    "spiral",
+                    {
+                        "curvStart": str(geom.curv_start),
+                        "curvEnd": str(geom.curv_end),
+                    },
+                )
+            elif isinstance(geom, ParamPoly3):
+                ET.SubElement(
+                    geom_node,
+                    "paramPoly3",
+                    {
+                        "aU": str(geom.aU),
+                        "bU": str(geom.bU),
+                        "cU": str(geom.cU),
+                        "dU": str(geom.dU),
+                        "aV": str(geom.aV),
+                        "bV": str(geom.bV),
+                        "cV": str(geom.cV),
+                        "dV": str(geom.dV),
+                        "pRange": "normalized"
+                        if geom.pRange_normalized
+                        else "arcLength",
+                    },
+                )
+            else:
+                ET.SubElement(geom_node, "line")
+
+        elevation_profile = ET.SubElement(road_node, "elevationProfile")
+        ET.SubElement(
+            elevation_profile,
+            "elevation",
+            {"s": "0", "a": "0", "b": "0", "c": "0", "d": "0"},
+        )
+
+        if road.s_to_lanesection:
+            lanes_node = ET.SubElement(road_node, "lanes")
+            if road.lane_offset.s0_to_poly:
+                for s, poly in sorted(road.lane_offset.s0_to_poly.items()):
+                    ET.SubElement(
+                        lanes_node,
+                        "laneOffset",
+                        {
+                            "s": str(s),
+                            "a": str(poly.get(s)),
+                            "b": str(poly.get_grad(s)),
+                            "c": str(poly.c),
+                            "d": str(poly.d),
+                        },
+                    )
+            for section in road.get_lanesections():
+                section_node = ET.SubElement(
+                    lanes_node,
+                    "laneSection",
+                    {"s": str(section.s0)},
+                )
+                lane_groups = (
+                    ("left", sorted(i for i in section.id_to_lane if i > 0)),
+                    ("center", [i for i in section.id_to_lane if i == 0]),
+                    ("right", sorted((i for i in section.id_to_lane if i < 0), reverse=True)),
+                )
+                for side_name, lane_ids in lane_groups:
+                    if not lane_ids:
+                        continue
+                    side_node = ET.SubElement(section_node, side_name)
+                    for lane_id in lane_ids:
+                        lane = section.get_lane(lane_id)
+                        lane_node = ET.SubElement(
+                            side_node,
+                            "lane",
+                            {
+                                "id": str(lane.id),
+                                "type": lane.type,
+                                "level": str(lane.level).lower(),
+                            },
+                        )
+                        if lane.id != 0:
+                            for s, poly in sorted(lane.lane_width.s0_to_poly.items()):
+                                ET.SubElement(
+                                    lane_node,
+                                    "width",
+                                    {
+                                        "sOffset": str(max(0.0, s - section.s0)),
+                                        "a": str(poly.get(s)),
+                                        "b": str(poly.get_grad(s)),
+                                        "c": str(poly.c),
+                                        "d": str(poly.d),
+                                    },
+                                )
+                        for group in lane.roadmark_groups:
+                            ET.SubElement(
+                                lane_node,
+                                "roadMark",
+                                {
+                                    "sOffset": str(group.s_offset),
+                                    "type": group.type,
+                                    "weight": group.weight,
+                                    "color": group.color,
+                                    "laneChange": group.lane_change,
+                                },
+                            )
+
+        if road.id_to_object:
+            objects_node = ET.SubElement(road_node, "objects")
+            for obj in road.id_to_object.values():
+                ET.SubElement(
+                    objects_node,
+                    "object",
+                    {
+                        "id": obj.id,
+                        "s": str(obj.s0),
+                        "t": str(obj.t0),
+                        "zOffset": str(obj.z0),
+                        "length": str(obj.length),
+                        "width": str(obj.width),
+                        "height": str(obj.height),
+                        "type": obj.type,
+                        "name": obj.name,
+                    },
+                )
+
+        if road.id_to_signal:
+            signals_node = ET.SubElement(road_node, "signals")
+            for signal in road.id_to_signal.values():
+                ET.SubElement(
+                    signals_node,
+                    "signal",
+                    {
+                        "id": signal.id,
+                        "name": signal.name,
+                        "s": str(signal.s0),
+                        "t": str(signal.t0),
+                        "dynamic": str(signal.is_dynamic).lower(),
+                        "zOffset": str(signal.zOffset),
+                        "value": str(signal.value),
+                        "height": str(signal.height),
+                        "width": str(signal.width),
+                        "orientation": signal.orientation,
+                        "country": signal.country,
+                        "type": signal.type,
+                        "subtype": signal.subtype,
+                        "unit": signal.unit,
+                        "text": signal.text,
+                    },
+                )
+
+        return road_node
+
+    def _junction_to_xml(self, junction: Junction) -> ET.Element:
+        junction_node = ET.Element("junction", {"name": junction.name, "id": junction.id})
+        for connection in junction.id_to_connection.values():
+            connection_node = ET.SubElement(
+                junction_node,
+                "connection",
+                {
+                    "id": connection.id,
+                    "incomingRoad": connection.incoming_road,
+                    "connectingRoad": connection.connecting_road,
+                    "contactPoint": connection.contact_point,
+                },
+            )
+            for lane_link in connection.lane_links:
+                ET.SubElement(
+                    connection_node,
+                    "laneLink",
+                    {"from": str(lane_link.from_lane), "to": str(lane_link.to_lane)},
+                )
+        for priority in junction.priorities:
+            ET.SubElement(junction_node, "priority", {"high": priority.high, "low": priority.low})
+        for controller in junction.id_to_controller.values():
+            ET.SubElement(
+                junction_node,
+                "controller",
+                {
+                    "id": controller.id,
+                    "type": controller.type,
+                    "sequence": str(controller.sequence),
+                },
+            )
+        return junction_node
+
 
 def readXodr(xodr_file: str | Path, **kwargs) -> OpenDriveMap:
     """Load an OpenDRIVE file into an :class:`OpenDriveMap`.
 
     Args:
         xodr_file: Source OpenDRIVE ``.xodr`` path.
-        **kwargs: Keyword arguments forwarded to :class:`OpenDriveMap`.
+        **kwargs: Keyword arguments forwarded to
+            :meth:`OpenDriveMap.load_xodr`.
 
     Returns:
         The parsed :class:`OpenDriveMap`.
     """
 
-    return OpenDriveMap(str(xodr_file), **kwargs)
+    return OpenDriveMap().loadXodr(xodr_file, **kwargs)
 
 
 __all__ = [
     "OpenDriveMap",
     "readXodr",
     "Road",
+    "Junction",
+    "JunctionConnection",
+    "JunctionLaneLink",
+    "JunctionPriority",
+    "JunctionController",
     "LaneSection",
     "Lane",
     "LaneKey",

@@ -33,7 +33,7 @@ import subprocess
 import tempfile
 from typing import Any, Mapping, Sequence, TYPE_CHECKING
 import xml.etree.ElementTree as ET
-from . import OpenDriveMap
+from . import OpenDriveMap, readXodr
 
 if TYPE_CHECKING:
     import sumolib.net
@@ -222,7 +222,7 @@ def xodr_from_net_xml(
     _restore_opendrive_ids(output_file, source_net_file)
 
     kwargs = dict(opendrive_map_kwargs or {})
-    odr_map = OpenDriveMap(str(output_file), **kwargs)
+    odr_map = readXodr(output_file, **kwargs)
     setattr(odr_map, "sumo_net_file", str(source_net_file))
     setattr(odr_map, "xodr_file", str(output_file))
     if temp_dir is not None:
@@ -568,26 +568,7 @@ def _safe_call(obj, name: str):
         return None
 
 
-opendrive_to_sumo_net = xodr_to_net_xml
-
-
-def sumo_net_to_opendrive_map(
-    net: sumolib.net.Net | None = None,
-    net_file: str | Path | None = None,
-    xodr_file: str | Path | None = None,
-    **kwargs: Any,
-) -> OpenDriveMap:
-    return xodr_from_net_xml(
-        net_file=net_file,
-        xodr_file=xodr_file,
-        net=net,
-        **kwargs,
-    )
-
-
 __all__ = [
     "xodr_to_net_xml",
     "xodr_from_net_xml",
-    "opendrive_to_sumo_net",
-    "sumo_net_to_opendrive_map",
 ]
