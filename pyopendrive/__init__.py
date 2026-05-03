@@ -1,6 +1,6 @@
 from .__xdor_reader import (
     OpenDriveMap,
-    load,
+    readXodr,
     Road,
     LaneSection,
     Lane,
@@ -31,7 +31,7 @@ from .web import web_viewer
 
 __all__ = [
     "OpenDriveMap",
-    "load",
+    "readXodr",
     "Road",
     "LaneSection",
     "Lane",

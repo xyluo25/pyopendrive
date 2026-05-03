@@ -1810,7 +1810,7 @@ class OpenDriveMap:
         return sections[0] if link.contact_point == "start" else sections[-1]
 
 
-def load(xodr_file: str | Path, **kwargs) -> OpenDriveMap:
+def readXodr(xodr_file: str | Path, **kwargs) -> OpenDriveMap:
     """Load an OpenDRIVE file into an :class:`OpenDriveMap`.
 
     Args:
@@ -1826,7 +1826,7 @@ def load(xodr_file: str | Path, **kwargs) -> OpenDriveMap:
 
 __all__ = [
     "OpenDriveMap",
-    "load",
+    "readXodr",
     "Road",
     "LaneSection",
     "Lane",
