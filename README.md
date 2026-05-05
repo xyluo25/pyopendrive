@@ -74,6 +74,14 @@ If `netconvert` is not available, the SUMO helpers will raise an error.
 
 ## Bundled Data and Viewer
 
+```python
+import pyopendrive as odr
+
+# open the web viewer, and you can open your .xodr file for visualization then
+odr.xodr_web_viewer()
+
+```
+
 The repository includes a sample map at [datasets/chatt.xodr](datasets/chatt.xodr) and a simple smoke-test script at [tutorial.py](tutorial.py).
 
 There is also a browser-based viewer in [web](web) that can be opened locally or served from a static HTTP server. See [pyopendrive/web/README.md](pyopendrive/web/README.md) for viewer instructions.
@@ -84,6 +92,12 @@ Run the test suite with:
 
 ```powershell
 pytest
+
+# or generate coverage report (pytest-cov requried)
+pytest --cov=pyopendrive --cov-report=html  --cov-report=term
+
+# or generate pylint report (pylint required)
+pylint . --output=pylint_report.txt
 ```
 
 The SUMO round-trip tests are skipped automatically when `netconvert` is not installed.
