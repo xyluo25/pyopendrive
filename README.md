@@ -1,6 +1,6 @@
 # pyopendrive
 
-`pyopendrive` is a Python package for reading, inspecting, and converting OpenDRIVE `.xodr` networks. Converted from [libopendrive (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
+`pyopendrive` is a Python package for reading, inspecting, and converting OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
 
 ## Features
 
@@ -11,7 +11,7 @@
 - Use the bundled browser viewer for exploring `.xodr` files locally.
 
 > [!NOTE]
-> This file is adapted from [libopendrive (C++)](https://github.com/pageldev/libOpenDRIVE) with additional modifications
+> This file is adapted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) with additional modifications
 >
 > Modifications:
 >
