@@ -1,6 +1,6 @@
 # pyopendrive
 
-`pyopendrive` is a Python package for reading, inspecting, and converting OpenDRIVE `.xodr` road networks. It wraps the project’s pure-Python OpenDRIVE model and also provides helpers for working with SUMO networks through `sumolib`.
+`pyopendrive` is a Python package for reading, inspecting, and converting OpenDRIVE `.xodr` networks. Converted from [libopendrive (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
 
 ## Features
 
@@ -9,6 +9,18 @@
 - Save loaded maps back to `.xodr`.
 - Convert OpenDRIVE maps to SUMO networks and convert SUMO networks back to OpenDRIVE.
 - Use the bundled browser viewer for exploring `.xodr` files locally.
+
+> [!NOTE]
+> This file is adapted from [libopendrive (C++)](https://github.com/pageldev/libOpenDRIVE) with additional modifications
+>
+> Modifications:
+>
+> - Converted from C++ to Python. Licensed: Apache 2
+> - Refactored APIs for Python package usage.
+> - Integrated web viewer. Licensed: Apache 2
+> - OpenDrive coordination conversion: LonLat2XY, XY2LonLat
+> - OpenDrive to SUMO:  xodr_to_net_xml, xodr_from_net_xml
+> - Create OpenDrive Network, edit, inspecting ect...
 
 ## Installation
 
@@ -20,9 +32,10 @@ pip install -e .
 
 The package depends on `sumolib` for SUMO conversion support. To use the SUMO conversion helpers, you also need the SUMO `netconvert` executable available on `PATH`.
 
-## Quick Start
+<details>
+<summary><b>Click to expand Quick Start</b></summary>
 
-Load an OpenDRIVE map and inspect its contents:
+### Load an OpenDRIVE map (.xodr) and inspect its contents
 
 ```python
 import pyopendrive as odr
@@ -36,7 +49,51 @@ print(len(Map.getJunctions()))
 print(Map.getRoad("1").name)
 ```
 
-## Common Tasks
+### Convert the network to LonLat and vice verse
+
+```python
+import pyopendrive as odr
+
+x = 1377.14000000
+y = 221.29000000
+
+# Convert to WGS1984
+lon, lat = Map.convertXY2LonLat(x, y)
+
+# Convert back to original coordinate system
+x, y = Map.convertLonLat2XY(lon, lat)
+
+```
+
+### Open the Web Viewer
+
+```python
+import pyopendrive as odr
+
+# This will open the web viewer to your browser
+odr.xodr_web_viewer()
+
+```
+
+### Convert XODR to and from SUMO net xml
+
+```python
+import pyopendrive as odr
+
+path_xodr = "datasets/chatt.xodr"
+path_net = "datasets/chatt.net.xml"
+
+Map = odr.readXodr(path_xodr)
+
+# Convert OpenDrive to SUMO network
+sumo_net = xodr_to_net_xml(xodr_file, path_net)
+
+# Convert OpenDrive from SUMO network file
+Map = xodr_from_net_xml(net_file, xodr_file)
+
+```
+
+If `netconvert` is not available, the SUMO helpers will raise an error.
 
 ### Save a map back to OpenDRIVE
 
@@ -44,46 +101,43 @@ print(Map.getRoad("1").name)
 saved_path = Map.saveXodr("output/saved.xodr")
 ```
 
-### Query lane geometry
-
-```python
-road = Map.getRoad("1")
-section = road.get_lanesection(0.0)
-lane = section.get_lane(1)
-
-xyz = road.get_xyz(5.0, 1.0, 0.5)
-surface_point = road.get_surface_pt(5.0, 1.0)
-roadmarks = lane.get_roadmarks(0.0, road.length)
-```
-
-### Convert to and from SUMO
-
-```python
-import pyopendrive as odr
-from pyopendrive import xodr_to_net_xml, xodr_from_net_xml
-
-xodr_file = "datasets/chatt.xodr"
-net_file = "datasets/chatt.net.xml"
-
-sumo_net = xodr_to_net_xml(xodr_file, net_file)
-roundtrip_map = xodr_from_net_xml(net_file, xodr_file)
-
-# SUMO Net object as input to save to xodr
-# roundtrip_map = xodr_from_net_xml(net=sumo_net, xodr_file="build/chatt_roundtrip.xodr")
-
-```
-
-If `netconvert` is not available, the SUMO helpers will raise an error.
-
-## Bundled Data and Viewer
+### Query Map Information
 
 ```python
 import pyopendrive as odr
 
-# open the web viewer, and you can open your .xodr file for visualization then
-odr.xodr_web_viewer()
+path_xodr = "datasets/chatt.xodr"
+
+Map = odr.readXodr(path_xodr)
+
+roads = Map.getRoads()
+junctions = Map.getJunctions()
+graph = Map.getRoutingGraph()
+
+lane_count = len(Map.getLanes())
+geometry_count = sum(len(road.ref_line.s0_to_geometry) for road in roads)
+object_count = sum(len(road.id_to_object) for road in roads)
+signal_count = sum(len(road.id_to_signal) for road in roads)
+
+first_road = roads[0]
+s = min(1.0, first_road.length)
+xyz = first_road.ref_line.get_xyz(s)
+surface = first_road.get_surface_pt(s, 0.0)
+
+print(f"roads={len(roads)}")
+print(f"junctions={len(junctions)}")
+print(f"lane_sections={sum(len(road.s_to_lanesection) for road in roads)}")
+print(f"lanes={lane_count}")
+print(f"geometries={geometry_count}")
+print(f"objects={object_count}")
+print(f"signals={signal_count}")
+print(f"routing_edges={len(graph.edges)}")
+print(f"sample_ref_xyz={xyz}")
+print(f"sample_surface_xyz={surface}")
 
 ```
+
+</details>
 
 The repository includes a sample map at [datasets/chatt.xodr](datasets/chatt.xodr) and a simple smoke-test script at [tutorial.py](tutorial.py).
 
