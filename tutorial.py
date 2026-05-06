@@ -10,17 +10,17 @@ import pyopendrive as odr
 
 if __name__ == "__main__":
     path_xodr = "./datasets/chatt.xodr"
-    xodr = odr.readXodr(path_xodr)
+    Map = odr.readXodr(path_xodr)
     x = 1377.14000000
     y = 221.29000000
-    lon, lat = xodr.convertXY2LonLat(x, y)
+    lon, lat = Map.convertXY2LonLat(x, y)
     print(f"lon={lon}, lat={lat}")
 
-    roads = xodr.getRoads()
-    junctions = xodr.getJunctions()
-    graph = xodr.getRoutingGraph()
+    roads = Map.getRoads()
+    junctions = Map.getJunctions()
+    graph = Map.getRoutingGraph()
 
-    lane_count = len(xodr.getLanes())
+    lane_count = len(Map.getLanes())
     geometry_count = sum(len(road.ref_line.s0_to_geometry) for road in roads)
     object_count = sum(len(road.id_to_object) for road in roads)
     signal_count = sum(len(road.id_to_signal) for road in roads)

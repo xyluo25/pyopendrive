@@ -25,13 +25,15 @@ The package depends on `sumolib` for SUMO conversion support. To use the SUMO co
 Load an OpenDRIVE map and inspect its contents:
 
 ```python
-from pyopendrive import readXodr
+import pyopendrive as odr
 
-odr_map = readXodr("datasets/chatt.xodr")
+Map = odr.readXodr("datasets/chatt.xodr")
+# Map = odr.OpenDriveMap()
+# Map = Map.loadXodr("datasets/chatt.xodr")
 
-print(len(odr_map.getRoads()))
-print(len(odr_map.getJunctions()))
-print(odr_map.getRoad("1").name)
+print(len(Map.getRoads()))
+print(len(Map.getJunctions()))
+print(Map.getRoad("1").name)
 ```
 
 ## Common Tasks
@@ -39,13 +41,13 @@ print(odr_map.getRoad("1").name)
 ### Save a map back to OpenDRIVE
 
 ```python
-saved_path = odr_map.saveXodr("output/saved.xodr")
+saved_path = Map.saveXodr("output/saved.xodr")
 ```
 
 ### Query lane geometry
 
 ```python
-road = odr_map.getRoad("1")
+road = Map.getRoad("1")
 section = road.get_lanesection(0.0)
 lane = section.get_lane(1)
 
@@ -57,6 +59,7 @@ roadmarks = lane.get_roadmarks(0.0, road.length)
 ### Convert to and from SUMO
 
 ```python
+import pyopendrive as odr
 from pyopendrive import xodr_to_net_xml, xodr_from_net_xml
 
 xodr_file = "datasets/chatt.xodr"
