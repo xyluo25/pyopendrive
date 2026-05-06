@@ -34,8 +34,8 @@ The package depends on `sumolib` for SUMO conversion support. To use the SUMO co
 
 ## Tutorial
 
-<details>
-<summary><b>Click to expand Quick Start</b></summary>
+<details open>
+<summary><b>Click to expand/collapse Quick Start</b></summary>
 
 ### Load an OpenDRIVE map (.xodr) and inspect its contents
 
