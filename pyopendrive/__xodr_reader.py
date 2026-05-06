@@ -44,6 +44,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 import xml.etree.ElementTree as ET
 
+import sumolib
+
 Vec2D = Tuple[float, float]
 Vec3D = Tuple[float, float, float]
 Line3D = List[Vec3D]
@@ -1169,12 +1171,14 @@ class OpenDriveMap:
     ):
         self.xodr_file = "" if xodr_file is None else str(xodr_file)
         self.proj4 = ""
+        self.offset = ""
         self.x_offs = 0.0
         self.y_offs = 0.0
         self.id_to_road: Dict[str, Road] = {}
         self.id_to_junction: Dict[str, Junction] = {}
         self.root = ET.Element("OpenDRIVE")
         self.tree = ET.ElementTree(self.root)
+        self.__sumoNet = sumolib.net.Net()
         self.xml_doc = self.tree
         self.xml_parse_result = True
         if xodr_file is not None:
@@ -1225,6 +1229,7 @@ class OpenDriveMap:
 
         self.xodr_file = str(xodr_file)
         self.proj4 = ""
+        self.offset = ""
         self.x_offs = 0.0
         self.y_offs = 0.0
         if clear:
@@ -1267,9 +1272,7 @@ class OpenDriveMap:
 
         return road
 
-    def addJunction(
-        self, junction: Junction, *, replace: bool = False
-    ) -> Junction:
+    def addJunction(self, junction: Junction, *, replace: bool = False) -> Junction:
         """Add a :class:`Junction` to the map and return the stored junction."""
 
         junction_id = junction.id
@@ -1342,6 +1345,19 @@ class OpenDriveMap:
 
         return self.proj4
 
+    def getOffset(self) -> str:
+        """Return the OpenDRIVE header ``offset`` string."""
+
+        if self.offset:
+            # convert string like dict to dict
+            try:
+                offset_dict = eval(self.offset)
+                if isinstance(offset_dict, dict):
+                    return offset_dict
+            except Exception:
+                pass
+        return self.offset
+
     def getBoundary(self) -> Tuple[float, float, float, float]:
         """Return map bounds as ``(west, south, east, north)``.
 
@@ -1394,10 +1410,7 @@ class OpenDriveMap:
             for signal in road.get_road_signals()
         ]
 
-    def getLane(
-        self,
-        lane_id: Optional[int] = None,
-    ) -> Lane:
+    def getLane(self, lane_id: Optional[int] = None) -> Lane:
         """Return a lane by road id and lane id, or by :class:`LaneKey`."""
 
         if lane_id is None:
@@ -1409,10 +1422,7 @@ class OpenDriveMap:
                 return lane
         raise KeyError(f"Lane with id {lane_id} not found")
 
-    def getLanes(
-        self,
-        road_id: Optional[str] = None,
-    ) -> List[Lane]:
+    def getLanes(self, road_id: Optional[str] = None) -> List[Lane]:
         """Return lanes for the map, a road, or a road section at ``s``."""
 
         roads = [self.getRoad(road_id)] if road_id is not None else self.getRoads()
@@ -1422,6 +1432,136 @@ class OpenDriveMap:
             for section in sections:
                 lanes.extend(section.get_lanes())
         return lanes
+
+    def convertXY2LonLat(self, x: float, y: float) -> Tuple[float, float]:
+        """Convert from map-local XY coordinates to longitude and latitude."""
+
+        # USE sumolib's implementation for better accuracy, especially for larger maps.
+        return self.__sumoNet.convertXY2LonLat(x=x, y=y)
+
+    def convertLonLat2XY(self, lon: float, lat: float) -> Tuple[float, float]:
+        """Convert from longitude and latitude to map-local XY coordinates."""
+
+        # USE sumolib's implementation for better accuracy, especially for larger maps.
+        return self.__sumoNet.convertLonLat2XY(lon=lon, lat=lat)
+
+    def getRoadNetworkMesh(self, eps: float) -> RoadNetworkMesh:
+        out = RoadNetworkMesh()
+        for road in self.id_to_road.values():
+            out.lanes_mesh.road_start_indices[len(
+                out.lanes_mesh.vertices)] = road.id
+            out.roadmarks_mesh.road_start_indices[len(out.roadmarks_mesh.vertices)] = (
+                road.id
+            )
+            for ls in road.get_lanesections():
+                out.lanes_mesh.lanesec_start_indices[len(out.lanes_mesh.vertices)] = (
+                    ls.s0
+                )
+                out.roadmarks_mesh.lanesec_start_indices[
+                    len(out.roadmarks_mesh.vertices)
+                ] = ls.s0
+                for lane in ls.get_lanes():
+                    out.lanes_mesh.lane_start_indices[len(out.lanes_mesh.vertices)] = (
+                        lane.id
+                    )
+                    out.lanes_mesh.add_mesh(road.get_lane_mesh(lane, eps))
+                    out.roadmarks_mesh.lane_start_indices[
+                        len(out.roadmarks_mesh.vertices)
+                    ] = lane.id
+                    for roadmark in lane.get_roadmarks(
+                        ls.s0, road.get_lanesection_end(ls)
+                    ):
+                        out.roadmarks_mesh.roadmark_type_start_indices[
+                            len(out.roadmarks_mesh.vertices)
+                        ] = roadmark.type
+                        out.roadmarks_mesh.add_mesh(
+                            road.get_roadmark_mesh(lane, roadmark, eps)
+                        )
+            out.road_objects_mesh.road_start_indices[
+                len(out.road_objects_mesh.vertices)
+            ] = road.id
+            for obj in road.id_to_object.values():
+                out.road_objects_mesh.road_object_start_indices[
+                    len(out.road_objects_mesh.vertices)
+                ] = obj.id
+            out.road_signals_mesh.road_start_indices[
+                len(out.road_signals_mesh.vertices)
+            ] = road.id
+            for sig in road.id_to_signal.values():
+                out.road_signals_mesh.road_signal_start_indices[
+                    len(out.road_signals_mesh.vertices)
+                ] = sig.id
+        return out
+
+    def getRoutingGraph(self) -> RoutingGraph:
+        graph = RoutingGraph()
+        for road in self.id_to_road.values():
+            sections = road.get_lanesections()
+            for idx, ls in enumerate(sections):
+                prev_ls = (
+                    sections[idx - 1]
+                    if idx > 0
+                    else self._linked_lanesection(road.predecessor)
+                )
+                next_ls = (
+                    sections[idx + 1]
+                    if idx + 1 < len(sections)
+                    else self._linked_lanesection(road.successor)
+                )
+                for lane in ls.get_lanes():
+                    if lane.id == 0:
+                        continue
+                    follows_road = lane.id < 0
+                    pred_ls = prev_ls if follows_road else next_ls
+                    succ_ls = next_ls if follows_road else prev_ls
+                    pred_id = lane.predecessor if follows_road else lane.successor
+                    succ_id = lane.successor if follows_road else lane.predecessor
+                    if pred_ls and pred_id in pred_ls.id_to_lane:
+                        graph.add_edge(
+                            RoutingGraphEdge(
+                                pred_ls.id_to_lane[pred_id].key,
+                                lane.key,
+                                road.get_lanesection_length(ls),
+                            )
+                        )
+                    if succ_ls and succ_id in succ_ls.id_to_lane:
+                        graph.add_edge(
+                            RoutingGraphEdge(
+                                lane.key,
+                                succ_ls.id_to_lane[succ_id].key,
+                                road.get_lanesection_length(ls),
+                            )
+                        )
+        for junction in self.id_to_junction.values():
+            for conn in junction.id_to_connection.values():
+                incoming = self.id_to_road.get(conn.incoming_road)
+                connecting = self.id_to_road.get(conn.connecting_road)
+                if not incoming or not connecting:
+                    continue
+                incoming_ls = (
+                    incoming.get_lanesections()[-1]
+                    if incoming.successor.type == "junction"
+                    and incoming.successor.id == junction.id
+                    else incoming.get_lanesections()[0]
+                )
+                connecting_ls = (
+                    connecting.get_lanesections()[0]
+                    if conn.contact_point == "start"
+                    else connecting.get_lanesections()[-1]
+                )
+                for link in conn.lane_links:
+                    if (
+                        link.from_lane in incoming_ls.id_to_lane
+                        and link.to_lane in connecting_ls.id_to_lane
+                    ):
+                        graph.add_edge(
+                            RoutingGraphEdge(
+                                incoming_ls.id_to_lane[link.from_lane].key,
+                                connecting_ls.id_to_lane[link.to_lane].key,
+                                incoming.get_lanesection_length(incoming_ls),
+                            )
+                        )
+        return graph
 
     def _parse(
         self,
@@ -1436,6 +1576,18 @@ class OpenDriveMap:
         header = self.root.find("header")
         if header is not None and header.find("geoReference") is not None:
             self.proj4 = (header.findtext("geoReference") or "").strip()
+        if header is not None and header.find("offset") is not None:
+            self.offset = (header.find("offset").attrib or "")
+
+        # set location for __sumoNet to avoid sumolib warnings about missing location
+        if self.proj4 and self.offset:
+            self.__sumoNet.setLocation(
+                netOffset=f"{self.offset.get('x', 0)},{self.offset.get('y', 0)}",
+                convBoundary=None,
+                origBoundary=None,
+                projParameter=self.proj4,
+            )
+
         if center_map:
             xs, ys = [], []
             for geom in self.root.findall("./road/planView/geometry"):
@@ -1854,124 +2006,6 @@ class OpenDriveMap:
             )
             sig.lane_validities = self._validities(sig_node)
             road.id_to_signal[sid] = sig
-
-    def getRoadNetworkMesh(self, eps: float) -> RoadNetworkMesh:
-        out = RoadNetworkMesh()
-        for road in self.id_to_road.values():
-            out.lanes_mesh.road_start_indices[len(
-                out.lanes_mesh.vertices)] = road.id
-            out.roadmarks_mesh.road_start_indices[len(out.roadmarks_mesh.vertices)] = (
-                road.id
-            )
-            for ls in road.get_lanesections():
-                out.lanes_mesh.lanesec_start_indices[len(out.lanes_mesh.vertices)] = (
-                    ls.s0
-                )
-                out.roadmarks_mesh.lanesec_start_indices[
-                    len(out.roadmarks_mesh.vertices)
-                ] = ls.s0
-                for lane in ls.get_lanes():
-                    out.lanes_mesh.lane_start_indices[len(out.lanes_mesh.vertices)] = (
-                        lane.id
-                    )
-                    out.lanes_mesh.add_mesh(road.get_lane_mesh(lane, eps))
-                    out.roadmarks_mesh.lane_start_indices[
-                        len(out.roadmarks_mesh.vertices)
-                    ] = lane.id
-                    for roadmark in lane.get_roadmarks(
-                        ls.s0, road.get_lanesection_end(ls)
-                    ):
-                        out.roadmarks_mesh.roadmark_type_start_indices[
-                            len(out.roadmarks_mesh.vertices)
-                        ] = roadmark.type
-                        out.roadmarks_mesh.add_mesh(
-                            road.get_roadmark_mesh(lane, roadmark, eps)
-                        )
-            out.road_objects_mesh.road_start_indices[
-                len(out.road_objects_mesh.vertices)
-            ] = road.id
-            for obj in road.id_to_object.values():
-                out.road_objects_mesh.road_object_start_indices[
-                    len(out.road_objects_mesh.vertices)
-                ] = obj.id
-            out.road_signals_mesh.road_start_indices[
-                len(out.road_signals_mesh.vertices)
-            ] = road.id
-            for sig in road.id_to_signal.values():
-                out.road_signals_mesh.road_signal_start_indices[
-                    len(out.road_signals_mesh.vertices)
-                ] = sig.id
-        return out
-
-    def getRoutingGraph(self) -> RoutingGraph:
-        graph = RoutingGraph()
-        for road in self.id_to_road.values():
-            sections = road.get_lanesections()
-            for idx, ls in enumerate(sections):
-                prev_ls = (
-                    sections[idx - 1]
-                    if idx > 0
-                    else self._linked_lanesection(road.predecessor)
-                )
-                next_ls = (
-                    sections[idx + 1]
-                    if idx + 1 < len(sections)
-                    else self._linked_lanesection(road.successor)
-                )
-                for lane in ls.get_lanes():
-                    if lane.id == 0:
-                        continue
-                    follows_road = lane.id < 0
-                    pred_ls = prev_ls if follows_road else next_ls
-                    succ_ls = next_ls if follows_road else prev_ls
-                    pred_id = lane.predecessor if follows_road else lane.successor
-                    succ_id = lane.successor if follows_road else lane.predecessor
-                    if pred_ls and pred_id in pred_ls.id_to_lane:
-                        graph.add_edge(
-                            RoutingGraphEdge(
-                                pred_ls.id_to_lane[pred_id].key,
-                                lane.key,
-                                road.get_lanesection_length(ls),
-                            )
-                        )
-                    if succ_ls and succ_id in succ_ls.id_to_lane:
-                        graph.add_edge(
-                            RoutingGraphEdge(
-                                lane.key,
-                                succ_ls.id_to_lane[succ_id].key,
-                                road.get_lanesection_length(ls),
-                            )
-                        )
-        for junction in self.id_to_junction.values():
-            for conn in junction.id_to_connection.values():
-                incoming = self.id_to_road.get(conn.incoming_road)
-                connecting = self.id_to_road.get(conn.connecting_road)
-                if not incoming or not connecting:
-                    continue
-                incoming_ls = (
-                    incoming.get_lanesections()[-1]
-                    if incoming.successor.type == "junction"
-                    and incoming.successor.id == junction.id
-                    else incoming.get_lanesections()[0]
-                )
-                connecting_ls = (
-                    connecting.get_lanesections()[0]
-                    if conn.contact_point == "start"
-                    else connecting.get_lanesections()[-1]
-                )
-                for link in conn.lane_links:
-                    if (
-                        link.from_lane in incoming_ls.id_to_lane
-                        and link.to_lane in connecting_ls.id_to_lane
-                    ):
-                        graph.add_edge(
-                            RoutingGraphEdge(
-                                incoming_ls.id_to_lane[link.from_lane].key,
-                                connecting_ls.id_to_lane[link.to_lane].key,
-                                incoming.get_lanesection_length(incoming_ls),
-                            )
-                        )
-        return graph
 
     def _linked_lanesection(self, link: RoadLink) -> Optional[LaneSection]:
         if link.type != "road" or link.contact_point not in {"start", "end"}:
