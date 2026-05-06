@@ -32,6 +32,8 @@ pip install -e .
 
 The package depends on `sumolib` for SUMO conversion support. To use the SUMO conversion helpers, you also need the SUMO `netconvert` executable available on `PATH`.
 
+## Tutorial
+
 <details>
 <summary><b>Click to expand Quick Start</b></summary>
 
