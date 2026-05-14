@@ -1,493 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>OpenDrive Viewer</title>
+    <title>pyopendrive Map Editor</title>
     <meta charset="utf-8" />
     <meta
       name="description"
-      content="Online OpenDRIVE viewer. Load .xodr files to view them in 3D and export an .obj model from it. The viewer is implemented in C++, using WebGL and is based on the open source C++ library libOpenDRIVE."
+      content="OpenDRIVE editor powered by pyopendrive, MapLibre GL, and maplibre-gl-geo-editor."
     />
-    <meta
-      name="keywords"
-      content="opendrive, xodr, viewer, odr, online, visualizer, viewer"
-    />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
-    />
-    <meta />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/maplibre-geoman-free@0.7.1/dist/maplibre-geoman.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl-geo-editor@0.7.3/style.css" />
+    <link rel="stylesheet" href="./fonts/font-awesome.min.css" />
+    <link rel="stylesheet" href="./fonts/bootstrap.min.css" />
     <style>
       html,
       body {
+        width: 100%;
+        height: 100%;
         margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
         overflow: hidden;
-        background-color: black;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f3f4f1;
       }
 
-      canvas {
+      #map {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
       }
 
-      .fullscreen {
+      #toolbar {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-
-      .centered {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      #xodr_file_input_btn {
-        position: absolute;
-        bottom: 1em;
-        left: 1em;
-        font-size: 0.8em;
-        display: none;
-      }
-
-      #loading_screen {
-        background-color: black;
-      }
-
-      #loading_screen_msg {
-        font-size: 1.5em;
-        color: white;
-      }
-
-      #links {
-        position: absolute;
-        bottom: 0.1em;
-        right: 0.1em;
+        top: 12px;
+        left: 56px;
+        z-index: 2;
         display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        max-width: calc(100% - 420px);
+        padding: 8px;
+        border: 1px solid rgba(20, 24, 28, 0.16);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 8px 22px rgba(20, 24, 28, 0.12);
+      }
+
+      #toolbar button,
+      #toolbar label {
+        height: 34px;
+        margin: 0;
+        white-space: nowrap;
+      }
+
+      #toolbar .btn {
+        display: inline-flex;
+        gap: 6px;
         align-items: center;
       }
 
-      .icon {
-        color: lightgray;
-        font-size: 1.7em;
-        margin-right: 0.2em;
+      #status {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        z-index: 2;
+        max-width: min(520px, calc(100% - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(20, 24, 28, 0.16);
+        border-radius: 6px;
+        color: #1f2933;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 22px rgba(20, 24, 28, 0.12);
+        font-size: 13px;
       }
 
-      #help_msg {
-        position: absolute;
-        top: 2em;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
+      #xodr_file_input {
+        display: none;
+      }
+
+      @media (max-width: 780px) {
+        #toolbar {
+          left: 8px;
+          right: 8px;
+          max-width: none;
+        }
       }
     </style>
-    <link rel="stylesheet" href="./fonts/font-awesome.min.css" />
-    <link rel="stylesheet" href="./fonts/bootstrap.min.css" />
   </head>
-
   <body>
-    <canvas
-      id="canvas"
-      class="fullscreen"
-      oncontextmenu="event.preventDefault()"
-    ></canvas>
-    <div id="loading_screen" class="fullscreen"></div>
-    <p id="loading_screen_msg" class="centered">
-      <i class="fa fa-hourglass"></i> <span id="loading_screen_msg_txt"></span>
-    </p>
-    <input
-      id="xodr_file_input"
-      type="file"
-      accept=".xodr,.xml"
-      onchange="on_file_select(this.files[0])"
-      style="display: none"
-    />
-
-    <button id="xodr_file_input_btn" type="button" class="btn btn-primary">
-      <i class="fa fa-upload"></i> <span id="xodr_file_input_btn_txt"></span>
-    </button>
-
-    <div id="help_msg">
-      <i style="color: lightgray">
-        <span id="help_msg_txt1"></span>
-        <br />
-        <i class="fa fa-info-circle"></i>
-        <span id="help_msg_txt2"></span>
-      </i>
+    <div id="map"></div>
+    <div id="toolbar">
+      <input id="xodr_file_input" type="file" accept=".xodr,.xml" />
+      <label for="xodr_file_input" class="btn btn-primary btn-sm">
+        <i class="fa fa-upload"></i>
+        Open .xodr
+      </label>
+      <button id="save_xodr_btn" type="button" class="btn btn-success btn-sm">
+        <i class="fa fa-save"></i>
+        Save .xodr
+      </button>
+      <button id="fit_btn" type="button" class="btn btn-default btn-sm">
+        <i class="fa fa-crosshairs"></i>
+        Fit
+      </button>
+      <button id="reload_btn" type="button" class="btn btn-default btn-sm">
+        <i class="fa fa-refresh"></i>
+        Reload
+      </button>
     </div>
+    <div id="status">Loading OpenDRIVE network...</div>
 
-    <script src="./viewer.local-assets.js"></script>
-    <script src="./viewer.js"></script>
+    <script type="module">
+      import maplibregl from "https://esm.sh/maplibre-gl@5.7.1";
+      import { Geoman } from "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1";
+      import { GeoEditor } from "https://esm.sh/maplibre-gl-geo-editor@0.7.3";
 
-    <script type="text/javascript">
-      const canvas = document.getElementById("canvas");
-      const pendingXodrWindowNamePrefix = "ODR_VIEWER_PENDING_XODR:";
-      const px_ratio = window.devicePixelRatio || 1;
-      canvas.width = canvas.clientWidth * px_ratio; // drawing buffer size
-      canvas.height = canvas.clientHeight * px_ratio;
-      window.addEventListener("resize", () => {
-        const px_ratio = window.devicePixelRatio || 1;
-        canvas.width = canvas.clientWidth * px_ratio;
-        canvas.height = canvas.clientHeight * px_ratio;
-      });
+      const status = document.getElementById("status");
+      const fileInput = document.getElementById("xodr_file_input");
+      const saveButton = document.getElementById("save_xodr_btn");
+      const fitButton = document.getElementById("fit_btn");
+      const reloadButton = document.getElementById("reload_btn");
 
-      const lang =
-        new URLSearchParams(window.location.search).get("lang") || "en";
-      const translations = {
-        loading_screen_msg_txt: { en: "Loading...", zh: "正在加载..." },
-        xodr_file_input_btn_txt: { en: "Open .xodr", zh: "打开 .xodr" },
-        help_msg_txt1: {
-          en: "<b>Pan</b> - left mouse, <b>Zoom</b> - mousewheel, <b>Orbit</b> - right or left mouse + ctrl or shiftKey",
-        },
-        help_msg_txt2: {
-          en: "xodr files are processed locally on your device, with no data being uploaded",
-        },
+      let geoEditor = null;
+      let currentFilename = "network.xodr";
+      let currentGeoJson = {
+        type: "FeatureCollection",
+        features: [],
       };
-      Object.keys(translations).forEach((elem_id) => {
-        document.getElementById(elem_id).innerHTML =
-          translations[elem_id][lang] || translations[elem_id]["en"];
+
+      const map = new maplibregl.Map({
+        container: "map",
+        style: "https://demotiles.maplibre.org/style.json",
+        center: [-85.31, 35.05],
+        zoom: 14,
+        attributionControl: true,
       });
 
-      document
-        .getElementById("xodr_file_input_btn")
-        .addEventListener("click", function () {
-          document.getElementById("xodr_file_input").click();
+      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
+      map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+
+      function setStatus(message, isError = false) {
+        status.textContent = message;
+        status.style.color = isError ? "#8a1f11" : "#1f2933";
+      }
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          headers: { "Content-Type": "application/json" },
+          ...options,
         });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || response.statusText);
+        }
+        return payload;
+      }
 
-      var OpenDriveViewer = null;
-      var ModuleOdrViewer = null;
-      var requestId = undefined;
-
-      function offer_file_as_download(filename) {
-        let content = ModuleOdrViewer.FS.readFile(filename);
-        console.log(
-          `offering download of "${filename}", with ${content.length} bytes...`
-        );
-
-        var a = document.createElement("a");
-        a.download = filename;
-        a.href = URL.createObjectURL(new Blob([content]));
-        a.style.display = "none";
-
-        document.body.appendChild(a);
-        a.click();
+      function downloadText(filename, text, type = "application/xml") {
+        const link = document.createElement("a");
+        link.download = filename;
+        link.href = URL.createObjectURL(new Blob([text], { type }));
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
         setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(a.href);
-        }, 2000);
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href);
+        }, 1000);
       }
 
-      function on_file_select(file) {
-        if (!file) return;
-        let file_reader = new FileReader();
-        file_reader.onload = () => {
-          load_selected_file_as_initial_map(file_reader.result);
-        };
-        file_reader.readAsText(file);
-      }
-
-      async function load_selected_file_as_initial_map(file_text) {
-        const fitted_file_text = fit_header_bounds_to_map(file_text);
-
-        try {
-          await store_pending_xodr_file(fitted_file_text);
-          const url = new URL(window.location.href);
-          url.searchParams.set("pending_xodr", "1");
-          url.searchParams.set("pending_ts", Date.now().toString());
-          window.location.href = url.href;
-        } catch (error) {
-          console.warn("Could not restart viewer with selected file.", error);
-          load_file(fitted_file_text, true);
-        }
-      }
-
-      function open_pending_xodr_db() {
-        return new Promise((resolve, reject) => {
-          if (!window.indexedDB) {
-            reject(new Error("IndexedDB is not available."));
-            return;
-          }
-
-          const request = indexedDB.open("odr_viewer_pending_files", 1);
-          request.onupgradeneeded = () => {
-            request.result.createObjectStore("files");
-          };
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
+      function fitToGeoJson(geojson) {
+        const coords = geojson.features.flatMap((feature) => {
+          if (feature.geometry?.type !== "LineString") return [];
+          return feature.geometry.coordinates;
         });
-      }
-
-      function with_timeout(promise, milliseconds, message) {
-        let timeout_id = null;
-        const timeout = new Promise((_, reject) => {
-          timeout_id = setTimeout(() => reject(new Error(message)), milliseconds);
-        });
-        return Promise.race([promise, timeout]).finally(() => clearTimeout(timeout_id));
-      }
-
-      async function store_pending_xodr_file(file_text) {
-        try {
-          window.name = pendingXodrWindowNamePrefix + file_text;
-          if (window.name.startsWith(pendingXodrWindowNamePrefix)) {
-            return;
-          }
-        } catch (error) {
-          console.warn("window.name pending file write failed; trying IndexedDB.", error);
-        }
-
-        try {
-          const db = await with_timeout(
-            open_pending_xodr_db(),
-            3000,
-            "Timed out opening pending xodr IndexedDB."
-          );
-          await with_timeout(new Promise((resolve, reject) => {
-            const tx = db.transaction("files", "readwrite");
-            tx.objectStore("files").put(file_text, "pending_xodr_file");
-            tx.oncomplete = resolve;
-            tx.onerror = () => reject(tx.error);
-            tx.onabort = () => reject(tx.error);
-          }), 8000, "Timed out writing pending xodr file.");
-          db.close();
-        } catch (error) {
-          console.warn("IndexedDB pending file write failed; trying sessionStorage.", error);
-          sessionStorage.setItem("pending_xodr_file", file_text);
-        }
-      }
-
-      function attr_number(elem, name, fallback = 0) {
-        const value = elem ? Number(elem.getAttribute(name)) : NaN;
-        return Number.isFinite(value) ? value : fallback;
-      }
-
-      function sample_geometry_bounds(geometry, bounds) {
-        const x = attr_number(geometry, "x");
-        const y = attr_number(geometry, "y");
-        const hdg = attr_number(geometry, "hdg");
-        const length = Math.max(0, attr_number(geometry, "length"));
-        const arc = Array.from(geometry.children).find(
-          (child) => child.tagName === "arc"
+        if (coords.length === 0) return;
+        const bounds = coords.reduce(
+          (box, coord) => box.extend(coord),
+          new maplibregl.LngLatBounds(coords[0], coords[0])
         );
-        const steps = Math.max(2, Math.ceil(length / 10));
+        map.fitBounds(bounds, { padding: 60, duration: 500 });
+      }
 
-        for (let i = 0; i <= steps; i += 1) {
-          const ds = (length * i) / steps;
-          let px = x + ds * Math.cos(hdg);
-          let py = y + ds * Math.sin(hdg);
-
-          if (arc) {
-            const curvature = attr_number(arc, "curvature");
-            if (Math.abs(curvature) > 1e-9) {
-              const radius = 1 / curvature;
-              const theta = hdg + ds * curvature;
-              px = x + radius * (Math.sin(theta) - Math.sin(hdg));
-              py = y - radius * (Math.cos(theta) - Math.cos(hdg));
-            }
-          }
-
-          bounds.minX = Math.min(bounds.minX, px);
-          bounds.maxX = Math.max(bounds.maxX, px);
-          bounds.minY = Math.min(bounds.minY, py);
-          bounds.maxY = Math.max(bounds.maxY, py);
+      function setRoadSource(geojson) {
+        currentGeoJson = geojson;
+        if (map.getSource("opendrive-roads")) {
+          map.getSource("opendrive-roads").setData(geojson);
+        } else {
+          map.addSource("opendrive-roads", {
+            type: "geojson",
+            data: geojson,
+          });
+          map.addLayer({
+            id: "opendrive-road-casing",
+            type: "line",
+            source: "opendrive-roads",
+            paint: {
+              "line-color": "#243447",
+              "line-width": 7,
+              "line-opacity": 0.55,
+            },
+          });
+          map.addLayer({
+            id: "opendrive-roads",
+            type: "line",
+            source: "opendrive-roads",
+            paint: {
+              "line-color": "#f2b705",
+              "line-width": 3,
+            },
+          });
         }
       }
 
-      function fit_header_bounds_to_map(file_text) {
-        try {
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(file_text, "application/xml");
-          if (xml.querySelector("parsererror")) return file_text;
-
-          const header = xml.querySelector("OpenDRIVE > header");
-          const geometries = xml.querySelectorAll("OpenDRIVE > road > planView > geometry");
-          if (!header || geometries.length === 0) return file_text;
-
-          const bounds = {
-            minX: Number.POSITIVE_INFINITY,
-            maxX: Number.NEGATIVE_INFINITY,
-            minY: Number.POSITIVE_INFINITY,
-            maxY: Number.NEGATIVE_INFINITY,
-          };
-
-          geometries.forEach((geometry) => sample_geometry_bounds(geometry, bounds));
-          if (
-            !Number.isFinite(bounds.minX) ||
-            !Number.isFinite(bounds.maxX) ||
-            !Number.isFinite(bounds.minY) ||
-            !Number.isFinite(bounds.maxY)
-          ) {
-            return file_text;
-          }
-
-          const span = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, 1);
-          const padding = Math.max(25, span * 0.05);
-          header.setAttribute("west", (bounds.minX - padding).toFixed(2));
-          header.setAttribute("east", (bounds.maxX + padding).toFixed(2));
-          header.setAttribute("south", (bounds.minY - padding).toFixed(2));
-          header.setAttribute("north", (bounds.maxY + padding).toFixed(2));
-
-          return new XMLSerializer().serializeToString(xml);
-        } catch (error) {
-          console.warn("Could not fit OpenDRIVE header bounds.", error);
-          return file_text;
-        }
+      function loadIntoEditor(geojson) {
+        if (!geoEditor) return;
+        geoEditor.loadGeoJson(geojson);
+        setRoadSource(geojson);
       }
 
-      function load_file(file_text, clear_map) {
-        window.requestAnimationFrame(() => {
-          document.getElementById("loading_screen").style.display = "block";
-          document.getElementById("loading_screen_msg").style.display = "block";
-          document.getElementById("xodr_file_input_btn").style.display = "none";
-          setTimeout(() => {
-            if (clear_map) {
-              try {
-                ModuleOdrViewer["FS_unlink"]("./data.xodr");
-              } catch (error) {
-                console.warn(error);
-              }
-            }
-            ModuleOdrViewer["FS_createDataFile"](
-              ".",
-              "data.xodr",
-              file_text,
-              true,
-              true
-            );
-            OpenDriveViewer.load_map("./data.xodr", 0.1, true);
+      function editorFeatureCollection() {
+        if (geoEditor && typeof geoEditor.getAllFeatureCollection === "function") {
+          return geoEditor.getAllFeatureCollection();
+        }
+        return currentGeoJson;
+      }
 
-            document.getElementById("loading_screen").style.display = "none";
-            document.getElementById("loading_screen_msg").style.display =
-              "none";
-            document.getElementById("xodr_file_input_btn").style.display =
-              "block";
-          }, 0);
+      async function loadNetwork() {
+        setStatus("Loading OpenDRIVE network...");
+        const payload = await requestJson("/api/network");
+        currentFilename = payload.filename || "network.xodr";
+        loadIntoEditor(payload.geojson);
+        fitToGeoJson(payload.geojson);
+        setStatus(
+          `Loaded ${currentFilename}: ${payload.geojson.features.length} editable roads from pyopendrive.`
+        );
+      }
+
+      async function openXodrFile(file) {
+        if (!file) return;
+        setStatus(`Reading ${file.name}...`);
+        const text = await file.text();
+        const payload = await requestJson("/api/load-xodr", {
+          method: "POST",
+          body: JSON.stringify({ filename: file.name, xodr: text }),
         });
+        currentFilename = payload.filename || file.name;
+        loadIntoEditor(payload.geojson);
+        fitToGeoJson(payload.geojson);
+        setStatus(
+          `Loaded ${currentFilename}: ${payload.geojson.features.length} editable roads geocoded with convertXY2LonLat.`
+        );
       }
 
-      function render() {
-        OpenDriveViewer.render();
-        requestAnimationFrame(render);
+      async function saveEditedXodr() {
+        setStatus("Saving edited OpenDRIVE network...");
+        const geojson = editorFeatureCollection();
+        const payload = await requestJson("/api/save-xodr", {
+          method: "POST",
+          body: JSON.stringify({ geojson }),
+        });
+        currentFilename = payload.saved_filename || `edited_${currentFilename}`;
+        loadIntoEditor(payload.geojson);
+        downloadText(currentFilename, payload.xodr);
+        setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads.`);
       }
 
-      const moduleOptions =
-        window.location.protocol === "file:" &&
-        typeof window.createLocalOdrViewerModuleOptions === "function"
-          ? window.createLocalOdrViewerModuleOptions()
-          : {};
+      map.on("load", () => {
+        const geoman = new Geoman(map, {});
+        map.on("gm:loaded", () => {
+          geoEditor = new GeoEditor({
+            position: "top-right",
+            toolbarOrientation: "vertical",
+            columns: 2,
+            drawModes: ["line"],
+            editModes: ["select", "drag", "change", "delete", "copy", "split", "simplify", "lasso"],
+            fileModes: [],
+            fitBoundsOnLoad: true,
+            enableAttributeEditing: true,
+            attributePanelPosition: "right",
+            attributePanelWidth: 320,
+            attributePanelTitle: "OpenDRIVE Road",
+            attributeSchema: {
+              line: [
+                { name: "road_id", label: "Road ID", type: "string", required: true },
+                { name: "name", label: "Name", type: "string" },
+                { name: "junction", label: "Junction", type: "string" },
+              ],
+            },
+            onFeatureCreate: (feature) => {
+              feature.properties = {
+                ...(feature.properties || {}),
+                feature_type: "road",
+                road_id: feature.properties?.road_id || `new_${Date.now()}`,
+                source: "maplibre-gl-geo-editor",
+              };
+              setRoadSource(editorFeatureCollection());
+            },
+            onFeatureEdit: () => setRoadSource(editorFeatureCollection()),
+            onFeatureDelete: () => setRoadSource(editorFeatureCollection()),
+            onGeoJsonLoad: (result) => {
+              if (result?.features) {
+                setRoadSource({
+                  type: "FeatureCollection",
+                  features: result.features,
+                });
+              }
+            },
+          });
+          geoEditor.setGeoman(geoman);
+          map.addControl(geoEditor, "top-right");
+          loadNetwork().catch((error) => setStatus(error.message, true));
+        });
+      });
 
-      async function take_pending_xodr_file() {
-        if (window.name.startsWith(pendingXodrWindowNamePrefix)) {
-          const file_text = window.name.slice(pendingXodrWindowNamePrefix.length);
-          window.name = "";
-          return file_text;
-        }
-
-        let indexed_db_file = null;
-        try {
-          const db = await with_timeout(
-            open_pending_xodr_db(),
-            3000,
-            "Timed out opening pending xodr IndexedDB."
-          );
-          indexed_db_file = await with_timeout(new Promise((resolve, reject) => {
-            const tx = db.transaction("files", "readwrite");
-            const store = tx.objectStore("files");
-            const request = store.get("pending_xodr_file");
-            request.onsuccess = () => resolve(request.result || null);
-            request.onerror = () => reject(request.error);
-            tx.oncomplete = () => db.close();
-            tx.onerror = () => db.close();
-            tx.onabort = () => db.close();
-          }), 8000, "Timed out reading pending xodr file.");
-
-          if (indexed_db_file !== null) {
-            const db = await with_timeout(
-              open_pending_xodr_db(),
-              3000,
-              "Timed out opening pending xodr IndexedDB for cleanup."
-            );
-            await with_timeout(new Promise((resolve, reject) => {
-              const tx = db.transaction("files", "readwrite");
-              tx.objectStore("files").delete("pending_xodr_file");
-              tx.oncomplete = resolve;
-              tx.onerror = () => reject(tx.error);
-              tx.onabort = () => reject(tx.error);
-            }), 3000, "Timed out cleaning pending xodr file.");
-            db.close();
-            return indexed_db_file;
-          }
-        } catch (error) {
-          console.warn("Could not read pending xodr file from IndexedDB.", error);
-        }
-
-        try {
-          const file_text = sessionStorage.getItem("pending_xodr_file");
-          if (file_text !== null) {
-            sessionStorage.removeItem("pending_xodr_file");
-          }
-          return file_text;
-        } catch (error) {
-          console.warn("Could not read pending xodr file.", error);
-          return null;
-        }
-      }
-
-      function should_load_pending_xodr_file() {
-        return new URLSearchParams(window.location.search).get("pending_xodr") === "1";
-      }
-
-      function clear_pending_xodr_url_params() {
-        const url = new URL(window.location.href);
-        url.searchParams.delete("pending_xodr");
-        url.searchParams.delete("pending_ts");
-        window.history.replaceState({}, document.title, url.href);
-      }
-
-      OdrViewer(moduleOptions).then(async (Module) => {
-        ModuleOdrViewer = Module;
-        ModuleOdrViewer["canvas"] = (function () {
-          return document.getElementById("canvas");
-        })();
-        OpenDriveViewer = ModuleOdrViewer.Viewer.get_instance();
-        OpenDriveViewer.set_language(lang);
-        const pending_xodr_file = should_load_pending_xodr_file()
-          ? await take_pending_xodr_file()
-          : null;
-        if (should_load_pending_xodr_file()) {
-          clear_pending_xodr_url_params();
-        }
-        if (pending_xodr_file !== null) {
-          try {
-            ModuleOdrViewer["FS_unlink"]("./data.xodr");
-          } catch (error) {
-            console.warn(error);
-          }
-          ModuleOdrViewer["FS_createDataFile"](
-            ".",
-            "data.xodr",
-            pending_xodr_file,
-            true,
-            true
-          );
-        }
-        OpenDriveViewer.load_map("./data.xodr", 0.1, true);
-
-        render();
-        document.getElementById("loading_screen").style.display = "none";
-        document.getElementById("loading_screen_msg").style.display = "none";
-        document.getElementById("xodr_file_input_btn").style.display = "block";
-
-        setTimeout(function () {
-          document.getElementById("help_msg").style.display = "none";
-        }, 10000);
+      fileInput.addEventListener("change", () => {
+        openXodrFile(fileInput.files[0]).catch((error) => setStatus(error.message, true));
+        fileInput.value = "";
+      });
+      saveButton.addEventListener("click", () => {
+        saveEditedXodr().catch((error) => setStatus(error.message, true));
+      });
+      fitButton.addEventListener("click", () => fitToGeoJson(editorFeatureCollection()));
+      reloadButton.addEventListener("click", () => {
+        loadNetwork().catch((error) => setStatus(error.message, true));
       });
     </script>
   </body>

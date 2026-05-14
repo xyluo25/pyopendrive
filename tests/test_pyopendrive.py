@@ -210,6 +210,35 @@ def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) ->
     assert len(synthetic_map.getLanes()) == 5
 
 
+def test_open_drive_map_lon_lat_conversion_without_header_offset(tmp_path: Path) -> None:
+    xodr = tmp_path / "no_offset.xodr"
+    xodr.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="4" north="10" south="0" east="10" west="0">
+    <geoReference><![CDATA[+proj=tmerc +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +geoidgrids=egm96_15.gtx +vunits=m +no_defs]]></geoReference>
+  </header>
+  <road name="main" length="10" id="1" junction="-1">
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="10"><line/></geometry>
+    </planView>
+    <lanes><laneSection s="0"><center><lane id="0" type="none"/></center></laneSection></lanes>
+  </road>
+</OpenDRIVE>
+""",
+        encoding="utf-8",
+    )
+
+    odr_map = odr.readXodr(xodr)
+
+    lon, lat = odr_map.convertXY2LonLat(0.0, 0.0)
+    x, y = odr_map.convertLonLat2XY(lon, lat)
+
+    assert_vec_finite((lon, lat, x, y))
+    assert x == pytest.approx(0.0, abs=1e-6)
+    assert y == pytest.approx(0.0, abs=1e-6)
+
+
 def test_open_drive_map_save_xodr_preserves_loaded_xml(
     synthetic_map: odr.OpenDriveMap,
     tmp_path: Path,

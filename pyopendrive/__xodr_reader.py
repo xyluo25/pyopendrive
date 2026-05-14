@@ -153,6 +153,29 @@ def _int(node: ET.Element, name: str, default: int = 0) -> int:
         return default
 
 
+def _offset_xy(offset: object) -> Tuple[float, float]:
+    if isinstance(offset, dict):
+        try:
+            return (float(offset.get("x", 0.0)), float(offset.get("y", 0.0)))
+        except (TypeError, ValueError):
+            return (0.0, 0.0)
+    return (0.0, 0.0)
+
+
+def _projection_for_sumo(proj4: str) -> str:
+    vertical_grid_prefixes = (
+        "+geoidgrids=",
+        "+geoid_crs=",
+        "+vunits=",
+        "+vto_meter=",
+    )
+    return " ".join(
+        token
+        for token in proj4.split()
+        if not token.startswith(vertical_grid_prefixes)
+    )
+
+
 def _bool(node: ET.Element, name: str, default: bool = False) -> bool:
     value = node.get(name)
     return default if value is None else value.lower() in {"1", "true", "yes"}
@@ -1579,13 +1602,16 @@ class OpenDriveMap:
         if header is not None and header.find("offset") is not None:
             self.offset = (header.find("offset").attrib or "")
 
-        # set location for __sumoNet to avoid sumolib warnings about missing location
-        if self.proj4 and self.offset:
+        # Set location for __sumoNet so lon/lat conversion has projection and
+        # netOffset metadata. OpenDRIVE offset is optional; SUMO still expects a
+        # netOffset key, so default to 0,0 when the header omits <offset>.
+        if self.proj4:
+            x_off, y_off = _offset_xy(self.offset)
             self.__sumoNet.setLocation(
-                netOffset=f"{self.offset.get('x', 0)},{self.offset.get('y', 0)}",
+                netOffset=f"{x_off},{y_off}",
                 convBoundary=None,
                 origBoundary=None,
-                projParameter=self.proj4,
+                projParameter=_projection_for_sumo(self.proj4),
             )
 
         if center_map:

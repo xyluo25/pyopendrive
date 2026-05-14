@@ -6,6 +6,15 @@ The viewer is a static Emscripten/WebAssembly application. It loads the compiled
 libOpenDRIVE viewer from `viewer.js`, `viewer.wasm`, and `viewer.data`, renders
 with WebGL, and processes selected `.xodr` files locally in the browser.
 
+## TODO: Edit element on the Map
+
+* **maplibre-gl-geo-editor**
+* **mapbox-gl-draw**
+
+## TODO: Use Python package replace C++
+
+## TODO: Replace basemap with MapLobreGL
+
 ## Files
 
 - `index.html` - viewer page and file-upload UI.
