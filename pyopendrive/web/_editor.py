@@ -905,6 +905,8 @@ class _ViewerState:
         self.tmp_dir = tempfile.TemporaryDirectory(prefix="pyopendrive_web_")
         self.current_file: Path | None = None
         self.current_map: Any | None = None
+        self.browser_sessions: set[str] = set()
+        self.shutdown_timer: threading.Timer | None = None
         if default_xodr is not None and default_xodr.exists():
             self.load_path(default_xodr)
 
@@ -956,6 +958,31 @@ class _ViewerState:
             "xodr": target.read_text(encoding="utf-8"),
             "saved_filename": target.name,
         }
+
+    def browser_open(self, session_id: str, server: ThreadingHTTPServer) -> None:
+        """Register a browser tab and cancel any pending auto-shutdown."""
+        if session_id:
+            self.browser_sessions.add(session_id)
+        if self.shutdown_timer is not None:
+            self.shutdown_timer.cancel()
+            self.shutdown_timer = None
+
+    def browser_close(self, session_id: str, server: ThreadingHTTPServer) -> None:
+        """Unregister a browser tab and stop the server if no tab comes back."""
+        if session_id:
+            self.browser_sessions.discard(session_id)
+        if self.browser_sessions:
+            return
+        if self.shutdown_timer is not None:
+            self.shutdown_timer.cancel()
+
+        def shutdown() -> None:
+            server.shutdown()
+            server.server_close()
+
+        self.shutdown_timer = threading.Timer(5.0, shutdown)
+        self.shutdown_timer.daemon = True
+        self.shutdown_timer.start()
 
 
 class _OpenDriveViewerHandler(SimpleHTTPRequestHandler):
@@ -1013,6 +1040,12 @@ class _OpenDriveViewerHandler(SimpleHTTPRequestHandler):
                         payload.get("lane_geojson"),
                         payload.get("signal_geojson"),
                     )
+                elif path == "/api/browser-open":
+                    self.state.browser_open(str(payload.get("session_id") or ""), self.server)
+                    response = {"ok": True}
+                elif path == "/api/browser-close":
+                    self.state.browser_close(str(payload.get("session_id") or ""), self.server)
+                    response = {"ok": True, "shutdown_scheduled": True}
                 else:
                     self._json_response(HTTPStatus.NOT_FOUND, {"error": "Not found"})
                     return

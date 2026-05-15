@@ -431,6 +431,7 @@
       let undoStack = [];
       let currentLaneWidth = 3.5;
       let generatedFeatureCounter = 0;
+      const processedEditorFeatureKeys = new Set();
       let currentGeoJson = {
         type: "FeatureCollection",
         features: [],
@@ -777,6 +778,35 @@
         status.style.color = isError ? "#8a1f11" : "#1f2933";
       }
 
+      const browserSessionId = (
+        window.crypto && typeof window.crypto.randomUUID === "function"
+      ) ? window.crypto.randomUUID() : `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      let browserCloseSent = false;
+
+      function postBrowserLifecycle(path, useBeacon = false) {
+        const body = JSON.stringify({ session_id: browserSessionId });
+        if (useBeacon && navigator.sendBeacon) {
+          navigator.sendBeacon(path, new Blob([body], { type: "application/json" }));
+          return;
+        }
+        fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+
+      function notifyBrowserClose() {
+        if (browserCloseSent) return;
+        browserCloseSent = true;
+        postBrowserLifecycle("/api/browser-close", true);
+      }
+
+      postBrowserLifecycle("/api/browser-open");
+      window.addEventListener("pagehide", notifyBrowserClose);
+      window.addEventListener("beforeunload", notifyBrowserClose);
+
       async function requestJson(url, options = {}) {
         const response = await fetch(url, {
           headers: { "Content-Type": "application/json" },
@@ -868,7 +898,11 @@
 
       function findSignalObjectFeatureByKey(objectKey) {
         return currentSignalGeoJson.features.find((feature) => {
-          return String(feature.properties?.object_key || feature.id) === String(objectKey);
+          return (
+            String(feature.properties?.object_key || feature.id) === String(objectKey) ||
+            String(feature.properties?.editor_id || "") === String(objectKey) ||
+            String(feature.properties?.object_id || "") === String(objectKey)
+          );
         });
       }
 
@@ -1527,30 +1561,93 @@
         return collection.features.length !== before;
       }
 
+      function removeArrayValue(value, deletedValue) {
+        const items = propertyList(value).filter((item) => String(item) !== String(deletedValue));
+        if (Array.isArray(value)) return items;
+        return items.length > 0 ? items : [];
+      }
+
+      function clearDeletedLaneReferences(deletedProps) {
+        const deletedKey = laneKeyFromProperties(deletedProps);
+        const deletedLaneId = deletedProps.lane_id;
+        let changed = 0;
+        for (const lane of currentLaneGeoJson.features) {
+          const props = lane.properties || {};
+          if (deletedKey && props.predecessor_keys !== undefined) {
+            const next = removeArrayValue(props.predecessor_keys, deletedKey);
+            if (JSON.stringify(next) !== JSON.stringify(propertyList(props.predecessor_keys))) {
+              props.predecessor_keys = next;
+              changed += 1;
+            }
+          }
+          if (deletedKey && props.successor_keys !== undefined) {
+            const next = removeArrayValue(props.successor_keys, deletedKey);
+            if (JSON.stringify(next) !== JSON.stringify(propertyList(props.successor_keys))) {
+              props.successor_keys = next;
+              changed += 1;
+            }
+          }
+          const sameRoad = String(props.road_id) === String(deletedProps.road_id);
+          if (sameRoad && String(props.predecessor) === String(deletedLaneId)) {
+            props.predecessor = 0;
+            changed += 1;
+          }
+          if (sameRoad && String(props.successor) === String(deletedLaneId)) {
+            props.successor = 0;
+            changed += 1;
+          }
+        }
+        if (copiedLaneLink && String(copiedLaneLink.lane_key) === String(deletedKey)) {
+          copiedLaneLink = null;
+        }
+        return changed;
+      }
+
+      function signalObjectMatches(feature, key) {
+        const props = feature.properties || {};
+        return (
+          String(props.object_key || feature.id) === String(key) ||
+          String(props.editor_id || "") === String(key) ||
+          String(props.object_id || "") === String(key)
+        );
+      }
+
       function deleteSelectedFeature() {
         const feature = selectedFeature;
         const props = feature?.properties || {};
         let removed = false;
+        let updatedLinks = 0;
         if (props.feature_type === "lane") {
           const key = laneKeyFromProperties(props);
+          updatedLinks = clearDeletedLaneReferences(props);
           removed = removeFeatureFromCollection(currentLaneGeoJson, (item) => laneKeyFromProperties(item.properties) === key);
+        } else if (props.feature_type === "road") {
+          const roadId = props.road_id || feature.id;
+          removed = removeFeatureFromCollection(currentGeoJson, (item) => String(item.properties?.road_id || item.id) === String(roadId));
+          removeFeatureFromCollection(currentLaneGeoJson, (item) => String(item.properties?.road_id) === String(roadId));
+          removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.road_id) === String(roadId));
         } else if (props.feature_type === "signal") {
           const key = props.signal_key || feature.id;
           removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.signal_key || item.id) === String(key));
         } else if (props.feature_type === "signal_object") {
-          const key = props.object_key || feature.id;
-          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.object_key || item.id) === String(key));
+          const key = props.object_key || props.editor_id || props.object_id || feature.id;
+          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => signalObjectMatches(item, key));
         } else if (props.feature_type === "environment_object") {
-          const key = props.object_key || feature.id;
-          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.object_key || item.id) === String(key));
+          const key = props.object_key || props.editor_id || props.object_id || feature.id;
+          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => signalObjectMatches(item, key));
         }
         if (!removed) {
-          setStatus("Select a lane, signal, post, or mast arm before deleting.", true);
+          setStatus("Select a road, lane, signal, post, mast arm, or environment object before deleting.", true);
           return;
         }
+        loadIntoEditor(currentGeoJson);
         setSpotlightFeature(null);
         refreshFeatureSources();
-        setStatus("Deleted selected feature. Save to write the deletion to OpenDRIVE.");
+        setStatus(
+          updatedLinks > 0
+            ? `Deleted selected feature and cleared ${updatedLinks} lane link reference(s). Save to write the deletion to OpenDRIVE.`
+            : "Deleted selected feature. Save to write the deletion to OpenDRIVE."
+        );
       }
 
       function copySelectedLaneLink() {
@@ -1668,7 +1765,38 @@
         };
       }
 
+      function normalizedPolygonGeometry(geometry) {
+        const polygonCoordinates = geometry?.type === "MultiPolygon"
+          ? geometry.coordinates?.[0]
+          : geometry?.coordinates;
+        if (!["Polygon", "MultiPolygon"].includes(geometry?.type)) return null;
+        const ring = (polygonCoordinates?.[0] || [])
+          .filter((coord) => Array.isArray(coord) && coord.length >= 2)
+          .map((coord) => [Number(coord[0]), Number(coord[1])])
+          .filter((coord) => Number.isFinite(coord[0]) && Number.isFinite(coord[1]));
+        if (ring.length < 3) return null;
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          ring.push([...first]);
+        }
+        return {
+          type: "Polygon",
+          coordinates: [ring],
+        };
+      }
+
+      function editorFeatureKey(feature) {
+        const geometry = feature?.geometry || {};
+        return `${feature?.id || ""}:${geometry.type || ""}:${JSON.stringify(geometry.coordinates || [])}`;
+      }
+
       function addEnvironmentObjectFromPolygon(geometry) {
+        geometry = normalizedPolygonGeometry(geometry);
+        if (!geometry) {
+          setStatus("Draw a valid polygon before creating an environment object.", true);
+          return null;
+        }
         const context = defaultLaneContext(geometry);
         if (!context?.road_id) {
           setStatus("Open a network or select a road/lane before adding environment geometry.", true);
@@ -1724,6 +1852,49 @@
         refreshFeatureSources();
         setStatus(`Added environment object ${generatedId}. Edit name/type/height in OpenDriveViewer, then save to write it to OpenDRIVE.`);
         return feature;
+      }
+
+      function handleEditorCreatedFeature(feature) {
+        if (!feature?.geometry) return false;
+        if (feature.properties?.feature_type) return false;
+        const key = editorFeatureKey(feature);
+        if (processedEditorFeatureKeys.has(key)) return true;
+        if (currentLaneGeoJson.features.length > 0 && feature.geometry.type === "LineString") {
+          processedEditorFeatureKeys.add(key);
+          addLaneFeatureFromGeometry(feature.geometry);
+          return true;
+        }
+        if (
+          currentLaneGeoJson.features.length > 0 &&
+          ["Polygon", "MultiPolygon"].includes(feature.geometry.type)
+        ) {
+          processedEditorFeatureKeys.add(key);
+          addEnvironmentObjectFromPolygon(feature.geometry);
+          return true;
+        }
+        if (["Polygon", "MultiPolygon"].includes(feature.geometry.type)) {
+          processedEditorFeatureKeys.add(key);
+          setStatus("Open an OpenDRIVE network before adding environment polygon geometry.", true);
+          loadIntoEditor(currentGeoJson);
+          return true;
+        }
+        return false;
+      }
+
+      function extractEditorFeature(event) {
+        return event?.feature || event?.features?.[0] || event?.geojson || event?.detail?.feature || null;
+      }
+
+      function processEditorGeneratedFeatures() {
+        if (!geoEditor || typeof geoEditor.getAllFeatureCollection !== "function") return false;
+        const collection = geoEditor.getAllFeatureCollection();
+        const features = collection?.features || [];
+        let handled = false;
+        for (const feature of features) {
+          if (handleEditorCreatedFeature(feature)) handled = true;
+        }
+        if (handled) loadIntoEditor(currentGeoJson);
+        return handled;
       }
 
       function addSignalDetail(kind) {
@@ -1941,6 +2112,34 @@
         setLaneNetworkHighlight(feature);
       }
 
+      function featureIdentity(feature) {
+        const ref = selectedFeatureKey(resolveSourceFeature(feature));
+        return ref ? `${ref.type}:${ref.key}` : "";
+      }
+
+      function selectOrToggleFeature(feature) {
+        const resolved = resolveSourceFeature(feature);
+        if (!resolved) {
+          setSpotlightFeature(null);
+          return;
+        }
+        if (selectedFeature && featureIdentity(selectedFeature) === featureIdentity(resolved)) {
+          setSpotlightFeature(null);
+          setStatus("Selection cleared.");
+          return;
+        }
+        setSpotlightFeature(resolved);
+      }
+
+      function topObjectFeatureAtPoint(point) {
+        const features = map.queryRenderedFeatures(point, {
+          layers: ["opendrive-signal-hitbox"],
+        });
+        return features.find((feature) => {
+          return ["environment_object", "signal_object", "signal"].includes(feature.properties?.feature_type);
+        }) || features[0] || null;
+      }
+
       // One click selects, mouse drag moves.  Registering once avoids duplicate
       // handlers after reloads or style changes.
       function registerSpotlightEvents() {
@@ -1961,7 +2160,7 @@
         map.on("click", "opendrive-lanes", (event) => {
           event.preventDefault();
           if (dragState) return;
-          setSpotlightFeature(event.features?.[0]);
+          selectOrToggleFeature(event.features?.[0]);
         });
         map.on("mousemove", "opendrive-roads", (event) => {
           map.getCanvas().style.cursor = "pointer";
@@ -1971,21 +2170,21 @@
         });
         map.on("click", "opendrive-roads", (event) => {
           event.preventDefault();
-          setSpotlightFeature(event.features?.[0]);
+          selectOrToggleFeature(event.features?.[0]);
         });
-        map.on("mousemove", "opendrive-signals", (event) => {
+        map.on("mousemove", "opendrive-signal-hitbox", () => {
           if (dragState) return;
           map.getCanvas().style.cursor = "pointer";
         });
-        map.on("mouseleave", "opendrive-signals", () => {
+        map.on("mouseleave", "opendrive-signal-hitbox", () => {
           if (dragState) return;
           map.getCanvas().style.cursor = "";
         });
-        map.on("mousedown", "opendrive-signals", startFeatureDrag);
-        map.on("click", "opendrive-signals", (event) => {
+        map.on("mousedown", "opendrive-signal-hitbox", startFeatureDrag);
+        map.on("click", "opendrive-signal-hitbox", (event) => {
           event.preventDefault();
           if (dragState) return;
-          setSpotlightFeature(event.features?.[0]);
+          selectOrToggleFeature(topObjectFeatureAtPoint(event.point) || event.features?.[0]);
         });
       }
 
@@ -2104,6 +2303,23 @@
         map.addSource("opendrive-signals", {
           type: "geojson",
           data: currentSignalGeoJson,
+        });
+        map.addLayer({
+          id: "opendrive-signal-hitbox",
+          type: "fill",
+          source: "opendrive-signals",
+          paint: {
+            "fill-color": [
+              "case",
+              ["==", ["get", "feature_type"], "environment_object"], "#8a6f4d",
+              "#000000",
+            ],
+            "fill-opacity": [
+              "case",
+              ["==", ["get", "feature_type"], "environment_object"], 0.16,
+              0.01,
+            ],
+          },
         });
         map.addLayer({
           id: "opendrive-signals",
@@ -2384,7 +2600,7 @@
             toolbarOrientation: "vertical",
             columns: 2,
             drawModes: ["line", "polygon"],
-            editModes: ["select", "change", "delete", "copy", "split", "simplify", "lasso"],
+            editModes: ["select", "copy", "split", "simplify", "lasso"],
             fileModes: [],
             fitBoundsOnLoad: false,
             enableAttributeEditing: true,
@@ -2404,19 +2620,7 @@
               ],
             },
             onFeatureCreate: (feature) => {
-              if (currentLaneGeoJson.features.length > 0 && feature.geometry?.type === "LineString") {
-                addLaneFeatureFromGeometry(feature.geometry);
-                return;
-              }
-              if (currentLaneGeoJson.features.length > 0 && feature.geometry?.type === "Polygon") {
-                addEnvironmentObjectFromPolygon(feature.geometry);
-                return;
-              }
-              if (feature.geometry?.type === "Polygon") {
-                setStatus("Open an OpenDRIVE network before adding environment polygon geometry.", true);
-                loadIntoEditor(currentGeoJson);
-                return;
-              }
+              if (handleEditorCreatedFeature(feature)) return;
               const generatedId = generatedEditorId("odr_line_road");
               feature.properties = {
                 ...(feature.properties || {}),
@@ -2429,19 +2633,40 @@
               feature.id = generatedId;
               setRoadSource(editorFeatureCollection());
             },
-            onFeatureEdit: () => setRoadSource(editorFeatureCollection()),
+            onFeatureEdit: () => {
+              if (processEditorGeneratedFeatures()) return;
+              setRoadSource(editorFeatureCollection());
+            },
             onFeatureDelete: () => setRoadSource(editorFeatureCollection()),
             onGeoJsonLoad: (result) => {
               if (result?.features) {
+                const editorFeatures = result.features || [];
+                const generatedFeature = editorFeatures.find((feature) => {
+                  return !feature.properties?.feature_type && ["LineString", "Polygon", "MultiPolygon"].includes(feature.geometry?.type);
+                });
+                if (generatedFeature && handleEditorCreatedFeature(generatedFeature)) {
+                  loadIntoEditor(currentGeoJson);
+                  return;
+                }
                 setRoadSource({
                   type: "FeatureCollection",
-                  features: result.features,
+                  features: editorFeatures,
                 });
               }
             },
           });
           geoEditor.setGeoman(geoman);
           map.addControl(geoEditor, "top-right");
+          for (const eventName of ["gm:create", "gm:drawend", "gm:editend"]) {
+            map.on(eventName, (event) => {
+              const feature = extractEditorFeature(event);
+              if (feature && handleEditorCreatedFeature(feature)) {
+                loadIntoEditor(currentGeoJson);
+                return;
+              }
+              processEditorGeneratedFeatures();
+            });
+          }
           loadNetwork().catch((error) => setStatus(error.message, true));
         };
 
