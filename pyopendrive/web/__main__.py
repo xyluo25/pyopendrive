@@ -1,3 +1,10 @@
+"""Command line entry point for the pyopendrive web editor.
+
+Run this module with ``python -m pyopendrive.web``.  It starts the small local
+HTTP server defined in :mod:`pyopendrive.web` and keeps it alive until the user
+presses Ctrl+C.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -7,6 +14,7 @@ from . import DEFAULT_XODR, run_server
 
 
 def main() -> None:
+    """Parse command line options and serve the browser editor."""
     parser = argparse.ArgumentParser(description="Run the pyopendrive web editor.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8765, type=int)

@@ -1,61 +1,22 @@
-# OpenDRIVE Web Viewer
+# OpenDRIVE Web Editor
 
-This folder contains the browser viewer for OpenDRIVE `.xodr` files.
-
-The viewer is a static Emscripten/WebAssembly application. It loads the compiled
-libOpenDRIVE viewer from `viewer.js`, `viewer.wasm`, and `viewer.data`, renders
-with WebGL, and processes selected `.xodr` files locally in the browser.
-
-## TODO: Edit element on the Map
-
-* **maplibre-gl-geo-editor**
-* **mapbox-gl-draw**
-
-## TODO: Use Python package replace C++
-
-## TODO: Replace basemap with MapLobreGL
+This folder contains the browser editor for OpenDRIVE `.xodr` files. The current
+viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
 
 ## Files
 
-- `index.html` - viewer page and file-upload UI.
-- `viewer.js` - Emscripten JavaScript loader.
-- `viewer.wasm` - compiled WebAssembly module.
-- `viewer.data` - preloaded viewer data package. It includes the default
-  `/data.xodr` map used at startup.
-- `viewer.local-assets.js` - embedded `viewer.wasm` and `viewer.data` fallback
-  used only when `index.html` is opened directly as a local `file://` page.
-- `fonts/` - local Bootstrap and Font Awesome assets used by the page.
-- `favicon.ico` - browser icon.
+- `index.html` - MapLibre GL editor UI.
+- `__init__.py` - local HTTP API server and OpenDRIVE to GeoJSON converters.
+- `__main__.py` - command line entry point for `python -m pyopendrive.web`.
+- `data.xodr` - default startup network loaded when no `--xodr` path is given.
+- `fonts/`, `favicon.ico` - local UI assets.
 
-All files above must stay together. If `viewer.wasm` or `viewer.data` is missing,
-the page will load but the viewer runtime will fail.
-
-## Run Locally
-
-The viewer supports both normal HTTP serving and direct local opening.
-
-### Option 1: Local HTTP Server
-
-This is the recommended development path because the browser loads
-`viewer.wasm` and `viewer.data` as separate files.
+## Run / Tutorial
 
 From the repository root:
 
 ```powershell
-python -m http.server 8765 --bind 127.0.0.1
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8765/web/index.html
-```
-
-Alternatively, serve from inside the `web` folder:
-
-```powershell
-cd web
-python -m http.server 8765 --bind 127.0.0.1
+python -m pyopendrive.web --no-browser
 ```
 
 Then open:
@@ -64,72 +25,189 @@ Then open:
 http://127.0.0.1:8765/index.html
 ```
 
-### Option 2: Open `index.html` Directly
+The default map is `pyopendrive/web/data.xodr`. The page calls
+`/api/network` on startup, and the Python server returns the default network as
+MapLibre-ready GeoJSON.
 
-You can also double-click `web/index.html` or open it from the browser with a
-`file://` URL. In this mode, `index.html` loads `viewer.local-assets.js`, which
-contains embedded copies of `viewer.wasm` and `viewer.data`. This avoids browser
-restrictions on fetching WebAssembly/data files from local disk.
+### Command Line Arguments
 
-Keep these files in the same folder for local mode:
+```powershell
+python -m pyopendrive.web --host 127.0.0.1 --port 8765 --no-browser --xodr pyopendrive\web\data.xodr
+```
 
-- `index.html`
-- `viewer.js`
-- `viewer.local-assets.js`
-- `fonts/`
-- `favicon.ico`
+- `--host` - network interface for the local server. The default is
+  `127.0.0.1`, which means only the local machine can connect.
+- `--port` - server port. The default is `8765`. Use `0` to let Python choose a
+  free port.
+- `--no-browser` - start the server without opening the browser automatically.
+  This is useful when running from a terminal, test script, or remote session.
+- `--xodr` - OpenDRIVE file loaded at startup. If omitted, the viewer loads
+  `pyopendrive/web/data.xodr`.
 
-## Use The Viewer
+To start with another map:
 
-1. Open the page in a browser with WebGL and WebAssembly support.
-2. Wait for the default map from `viewer.data` to load.
-3. Click `Open .xodr` to choose another OpenDRIVE file.
-4. Navigate the scene:
-   - Pan: left mouse drag.
-   - Zoom: mouse wheel.
-   - Orbit: right mouse drag, or left mouse drag with `Ctrl`/`Shift`.
+```powershell
+python -m pyopendrive.web --no-browser --xodr C:\path\to\map.xodr
+```
 
-The selected file is read through the browser `FileReader` API and placed into
-the in-memory Emscripten filesystem as `data.xodr`. It is not uploaded.
+To let Python pick a free port:
 
-## Verified Capability
+```powershell
+python -m pyopendrive.web --port 0
+```
 
-Current verified behavior:
+The selected URL is printed to the terminal.
 
-- Loads `index.html`, `viewer.js`, `viewer.wasm`, `viewer.data`, and local CSS
-  assets from a local HTTP server.
-- Opens from local disk through `file://` using `viewer.local-assets.js`.
-- Starts the WebAssembly runtime through `OdrViewer()`.
-- Loads the packaged default `/data.xodr` map at startup.
-- Supports opening local `.xodr` or `.xml` files from the file picker.
-- Refits selected file header bounds (`west`, `east`, `south`, `north`) from
-  the road plan-view geometry before loading, so the viewer base/grid mesh uses
-  the opened map boundary instead of stale source extents.
-- Restarts the viewer after file selection and injects the selected `.xodr` as
-  the initial runtime map. The handoff uses IndexedDB so larger local maps can
-  survive the reload. This is necessary because the compiled grid mesh is built
-  during the first `load_map()` call and is not rebuilt by later map swaps.
-- Renders through WebGL on the page canvas.
-- Supports mouse pan, zoom, and orbit controls.
+### `run_server()` Tutorial
 
-This folder does not contain a build pipeline. The WebAssembly artifacts are
-prebuilt outputs; regenerating them requires the original Emscripten/libOpenDRIVE
-web build setup.
+Use `run_server()` when your code wants to own the server lifetime. It creates
+the HTTP server and returns both the server object and the URL, but it does not
+block by itself.
 
-## Troubleshooting
+```python
+from pyopendrive.web import run_server
 
-If the page stays on `Loading...`, check the browser developer console and make
-sure these requests return HTTP 200:
+server, url = run_server(
+    host="127.0.0.1",
+    port=8765,
+    open_browser=False,
+    default_xodr=r"C:\path\to\map.xodr",
+)
 
-- `viewer.js`
-- `viewer.wasm`
-- `viewer.data`
-- `viewer.local-assets.js` when opened through `file://`
-- `fonts/font-awesome.min.css`
-- `fonts/bootstrap.min.css`
+print(f"Open {url}")
 
-If WebGL fails, try a current Chrome, Edge, or Firefox browser and verify that
-hardware acceleration/WebGL is enabled.
+try:
+    server.serve_forever()
+except KeyboardInterrupt:
+    pass
+finally:
+    server.server_close()
+```
 
-If a new map does not load, validate that the file is a readable OpenDRIVE XML
-file and has an `.xodr` or `.xml` extension.
+Arguments:
+
+- `host` - local interface to bind. Use `127.0.0.1` for local-only access.
+- `port` - local port to bind. Use `0` for any free port.
+- `open_browser` - when `True`, open the viewer URL in the default browser.
+- `default_xodr` - startup `.xodr` file. Pass `None` to start without a loaded
+  map.
+
+Return value:
+
+- `server` - a `ThreadingHTTPServer` instance. Call `serve_forever()` to run it.
+- `url` - the browser URL, usually `http://127.0.0.1:8765/index.html`.
+
+### `xodr_web_viewer()` Tutorial
+
+Use `xodr_web_viewer()` when you want the simplest Python call. It starts the
+server in a background daemon thread, opens the browser, and returns the URL.
+
+```python
+from pyopendrive.web import xodr_web_viewer
+
+url = xodr_web_viewer(
+    host="127.0.0.1",
+    port=8765,
+    default_xodr=r"C:\path\to\map.xodr",
+)
+
+print(f"Viewer running at {url}")
+```
+
+Arguments:
+
+- `index_html` - kept for backward compatibility. The current viewer is served
+  by the local Python API server.
+- `host` - local interface to bind.
+- `port` - local port to bind. Use `0` for any free port.
+- `default_xodr` - startup `.xodr` file. If omitted, `data.xodr` is loaded.
+
+Return value:
+
+- URL string for the running viewer.
+
+## Main Capabilities
+
+- Loads OpenDRIVE through `pyopendrive`.
+- Converts road, lane, signal, post, and mast-arm geometry to lon/lat with
+  `convertXY2LonLat`.
+- Displays lane-level polygons on a MapLibre world map.
+- Supports basemaps including OpenStreetMap, Google road/satellite, Carto,
+  Esri, OpenTopoMap, OSM HOT, and a local `Grid Mesh` basemap similar to the
+  original grid-style OpenDRIVE view.
+- Preserves loaded OpenDRIVE overlays when switching basemaps.
+- Shows the OpenDriveViewer panel with editable selected-feature attributes.
+- Selects map objects with a single click.
+- Drags lanes, signal heads, posts, and mast arms directly on the map.
+- Supports `Undo Move` and `Ctrl+Z` / `Cmd+Z` for the last drag movement.
+- Highlights selected lanes and the selected lane's predecessor/successor
+  lanes.
+- Saves edited OpenDRIVE XML through `/api/save-xodr`.
+
+## Editing
+
+The OpenDriveViewer panel provides these actions:
+
+- `Add Lane`
+- `Delete`
+- `Copy Lane Link`
+- `Set Pred`
+- `Set Succ`
+- `Add Signal`
+- `Add Post`
+- `Add Mast Arm`
+- `Undo Move`
+
+The embedded `maplibre-gl-geo-editor` toolbar supports line and polygon drawing.
+Drawn polygons can be converted into lane features when a road or lane context is
+selected.
+
+Editable fields update the map immediately. For example, changing signal or
+object `height`, `width`, `length`, `radius`, `zOffset`, or `map_heading`
+updates the visible 3D object. Key fields also cascade where possible:
+
+- Road `road_id`, `name`, and `junction` update related lane/signal fields.
+- Lane `lane_id`, `road_id`, and `lanesection_s0` rebuild `lane_key`.
+- Lane predecessor/successor key arrays are updated when a linked lane ID/key
+  changes.
+- Signal `signal_id` rebuilds `signal_key`.
+- Object `object_id` rebuilds `object_key`.
+
+## Signal Rendering Rules
+
+Some CARLA maps encode physical signal posts and mast arms as OpenDRIVE
+`<object>` entries. In those maps, the viewer renders the physical support
+objects and suppresses duplicate original signal-head geometry.
+
+If a map does not include physical support objects, `<signal>` entries are
+rendered as 3D signal-head objects.
+
+User-added `User_Signal_Head` entries remain visible after save/reload even on
+maps where original signal heads are suppressed.
+
+## Save Behavior
+
+Save sends road, lane, and signal/object GeoJSON to the Python server. The server
+updates OpenDRIVE XML and returns a downloadable `edited_network.xodr`.
+
+Persisted edits include:
+
+- Road centerline edits from line features.
+- Lane add/delete and lane attributes.
+- Lane predecessor/successor links.
+- Signal head add/delete and attributes.
+- Signal post and mast-arm add/delete and attributes.
+- Dragged signal/object positions, converted from lon/lat back to OpenDRIVE
+  `s`/`t`.
+
+## Limitations
+
+Lane geometry after reload is regenerated from OpenDRIVE lane definitions. A
+drawn lane polygon can be used for editing context before save, but long-term
+lane shape is controlled by OpenDRIVE lane width/border records.
+
+MapLibre supports a maximum practical pitch of about `85` degrees, not a true
+`90` degree vertical camera.
+
+The viewer depends on CDN-hosted MapLibre, Geoman, and
+`maplibre-gl-geo-editor` packages.

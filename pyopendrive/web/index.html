@@ -386,6 +386,9 @@
       const addMastArmButton = document.getElementById("add_mastarm_btn");
       const undoMoveButton = document.getElementById("undo_move_btn");
 
+      // The browser keeps three editable data sets:
+      // roads for OpenDRIVE planView centerlines, lanes for lane-level polygons,
+      // and signals for signal heads plus physical posts/mast arms.
       let geoEditor = null;
       let currentFilename = "network.xodr";
       let spotlightEventsRegistered = false;
@@ -409,6 +412,8 @@
       let pendingStyleRestore = null;
       let restoreRequestId = 0;
 
+      // Basemaps are only the background.  OpenDRIVE layers are restored after
+      // every style change so loaded lanes/signals do not disappear.
       const basemaps = {
         openstreetmap: {
           label: "OpenStreetMap",
@@ -489,23 +494,23 @@
           };
         }
         return {
-        version: 8,
-        sources: {
-          osm: {
-            type: "raster",
-            tiles: basemap.tiles,
-            tileSize: 256,
-            attribution: basemap.attribution,
+          version: 8,
+          sources: {
+            osm: {
+              type: "raster",
+              tiles: basemap.tiles,
+              tileSize: 256,
+              attribution: basemap.attribution,
+            },
           },
-        },
-        layers: [
-          {
-            id: "osm",
-            type: "raster",
-            source: "osm",
-          },
-        ],
-      };
+          layers: [
+            {
+              id: "osm",
+              type: "raster",
+              source: "osm",
+            },
+          ],
+        };
       }
 
       for (const [id, basemap] of Object.entries(basemaps)) {
@@ -530,6 +535,8 @@
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
       map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
 
+      // Changing a MapLibre style removes custom sources and layers.  Keep the
+      // current selection, swap the basemap, then rebuild the OpenDRIVE overlays.
       function changeBasemap(basemapId) {
         localStorage.setItem("opendriveviewer_basemap", basemapId);
         const selected = selectedFeature;
@@ -786,6 +793,9 @@
         };
       }
 
+      // Feature lookup helpers always return the source object from the editable
+      // collections.  MapLibre click events hand us copies, and editing those
+      // copies would not change the data that is later saved.
       function laneKeyFromProperties(properties) {
         if (!properties) return "";
         if (properties.lane_key) return String(properties.lane_key);
@@ -889,6 +899,8 @@
         });
       }
 
+      // Attribute editors store text in form fields, then convert the edited
+      // text back to the original value type before refreshing the map.
       function attributeValueToText(value) {
         if (Array.isArray(value) || (value && typeof value === "object")) {
           return JSON.stringify(value);
@@ -913,6 +925,8 @@
         return field.value;
       }
 
+      // Geometry helpers work in lon/lat because that is what MapLibre draws.
+      // The Python server converts lon/lat back to OpenDRIVE x/y on save.
       function localRect(lon, lat, heading, lengthM, widthM) {
         const halfLength = Math.max(0.2, Number(lengthM || 0.4) * 0.5);
         const halfWidth = Math.max(0.2, Number(widthM || 0.4) * 0.5);
@@ -1016,6 +1030,8 @@
         setStatus("Undid last movement. Save to write the restored position to OpenDRIVE.");
       }
 
+      // Dragging a lane near another lane endpoint updates predecessor and
+      // successor links.  It does not invent full OpenDRIVE lane geometry.
       function metersBetween(a, b) {
         if (!a || !b) return Number.POSITIVE_INFINITY;
         const lat = ((Number(a[1]) || 0) + (Number(b[1]) || 0)) * 0.5;
@@ -1099,6 +1115,8 @@
         }
       }
 
+      // When ids change, every related key must change too.  Otherwise the map
+      // would display the new id while save/highlight still referenced the old id.
       function replaceArrayValue(value, oldValue, newValue) {
         const items = propertyList(value);
         return items.map((item) => String(item) === String(oldValue) ? newValue : item);
@@ -1191,6 +1209,8 @@
         }
       }
 
+      // Creation and deletion operate on the in-memory GeoJSON first.  The XML
+      // file is written only when the user clicks Save.
       function shiftedPolygon(feature, dx = 0.000015, dy = 0.000015) {
         if (feature.geometry?.type !== "Polygon") return feature.geometry;
         return {
@@ -1304,6 +1324,8 @@
         return feature;
       }
 
+      // Direct map dragging is intentionally simple: move the selected polygon,
+      // keep an undo snapshot, and let save project the final lon/lat to s/t.
       function startFeatureDrag(event) {
         const feature = draggableFeatureFromEvent(event);
         if (!feature) return;
@@ -1454,6 +1476,8 @@
         setStatus(`Added ${kind}. Save to write it to OpenDRIVE.`);
       }
 
+      // Push current in-memory data into MapLibre sources after edits, undo,
+      // save reloads, or basemap style changes.
       function refreshFeatureSources() {
         if (map.getSource("opendrive-lanes")) {
           map.getSource("opendrive-lanes").setData(currentLaneGeoJson);
@@ -1532,9 +1556,13 @@
         }
       }
 
+      // The panel previously had a duplicate top summary.  Keep this no-op so
+      // older event flow can still call it without special cases.
       function updateSpotlightSummary(feature) {
       }
 
+      // Only the selected lane and its actual predecessor/successor lanes are
+      // highlighted.  Nearby or same-road lanes are not highlighted by default.
       function setLaneNetworkHighlight(feature) {
         const selectedSource = map.getSource("opendrive-lane-selected");
         const adjacentSource = map.getSource("opendrive-lane-adjacent");
@@ -1580,6 +1608,8 @@
         setLaneNetworkHighlight(feature);
       }
 
+      // One click selects, mouse drag moves.  Registering once avoids duplicate
+      // handlers after reloads or style changes.
       function registerSpotlightEvents() {
         if (spotlightEventsRegistered) return;
         spotlightEventsRegistered = true;
@@ -1631,6 +1661,8 @@
         laneSelectionEventsRegistered = true;
       }
 
+      // The visible network is lane-first.  Road centerlines stay available for
+      // editing/save support but are hidden so the lane layer carries the map.
       function setLaneSource(geojson) {
         currentLaneGeoJson = geojson || emptyFeatureCollection();
         if (map.getSource("opendrive-lanes")) {
@@ -1842,6 +1874,9 @@
         }
       }
 
+      // Loading means replacing every collection from the Python API response.
+      // This is also used after save so ids, links, and derived geometry match
+      // the OpenDRIVE file that was just written.
       function loadIntoEditor(geojson) {
         if (!geoEditor) return;
         geoEditor.loadGeoJson(geojson);
@@ -1899,6 +1934,8 @@
         );
       }
 
+      // Save sends all editable collections.  The server decides which fields
+      // can safely be written to OpenDRIVE XML and returns a refreshed payload.
       async function saveEditedXodr() {
         setStatus("Saving edited OpenDRIVE network...");
         const geojson = editorFeatureCollection();
@@ -1916,6 +1953,7 @@
         setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads and refreshed ${payload.lane_geojson.features.length} lanes plus ${(payload.signal_geojson?.features.length || 0)} signals.`);
       }
 
+      // Small console/debug API kept for developers and old demos.
       window.OpenDriveViewer = {
         map,
         get editor() {
@@ -1997,17 +2035,9 @@
       };
 
       map.on("load", () => {
-        const geoman = new Geoman(map, {});
-        map.on("style.load", () => {
-          if (
-            currentLaneGeoJson.features.length > 0 ||
-            currentSignalGeoJson.features.length > 0 ||
-            currentGeoJson.features.length > 0
-          ) {
-            restoreOverlayLayersAfterStyleChange();
-          }
-        });
-        map.on("gm:loaded", () => {
+        let geoman = null;
+        const startGeoEditor = () => {
+          if (geoEditor || !geoman) return;
           geoEditor = new GeoEditor({
             position: "top-right",
             toolbarOrientation: "vertical",
@@ -2085,7 +2115,20 @@
           geoEditor.setGeoman(geoman);
           map.addControl(geoEditor, "top-right");
           loadNetwork().catch((error) => setStatus(error.message, true));
+        };
+
+        map.on("style.load", () => {
+          if (
+            currentLaneGeoJson.features.length > 0 ||
+            currentSignalGeoJson.features.length > 0 ||
+            currentGeoJson.features.length > 0
+          ) {
+            restoreOverlayLayersAfterStyleChange();
+          }
         });
+        map.on("gm:loaded", startGeoEditor);
+        geoman = new Geoman(map, {});
+        setTimeout(startGeoEditor, 0);
       });
 
       fileInput.addEventListener("change", () => {
