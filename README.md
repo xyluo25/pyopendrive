@@ -1,6 +1,6 @@
 # pyopendrive
 
-`pyopendrive` is a Python package for reading, inspecting, and converting OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
+`pyopendrive` is a Python package for reading, inspecting, and editing OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
 
 ## Features
 
@@ -15,9 +15,9 @@
 >
 > Modifications:
 >
-> - Converted from C++ to Python. Licensed: Apache 2
-> - Refactored APIs for Python package usage.
-> - Integrated web viewer. Licensed: Apache 2
+> - Converted from C++ to Python
+> - Refactored APIs for Python package usage
+> - Integrated web viewer: editable network on real-world basemaps
 > - OpenDrive coordination conversion: LonLat2XY, XY2LonLat
 > - OpenDrive to SUMO:  xodr_to_net_xml, xodr_from_net_xml
 > - Create OpenDrive Network, edit, inspecting ect...
@@ -37,7 +37,11 @@ The package depends on `sumolib` for SUMO conversion support. To use the SUMO co
 <details open>
 <summary><b>Click to expand/collapse Quick Start</b></summary>
 
-### Load an OpenDRIVE map (.xodr) and inspect its contents
+If this is your first time using the package, think of the examples below as little recipes. Each one shows one simple thing the package can do.
+
+### Open a map and look around
+
+This reads a sample road map file and shows a few things that are inside it.
 
 ```python
 import pyopendrive as odr
@@ -51,7 +55,9 @@ print(len(Map.getJunctions()))
 print(Map.getRoad("1").name)
 ```
 
-### Convert the network to LonLat and vice verse
+### Convert map coordinates to longitude and latitude
+
+This turns the map's coordinates into the kind of numbers used on a globe.
 
 ```python
 import pyopendrive as odr
@@ -59,25 +65,27 @@ import pyopendrive as odr
 x = 1377.14000000
 y = 221.29000000
 
-# Convert to WGS1984
 lon, lat = Map.convertXY2LonLat(x, y)
 
-# Convert back to original coordinate system
+# Convert back to the map's original coordinate system
 x, y = Map.convertLonLat2XY(lon, lat)
 
 ```
 
 ### Open the Web Viewer
 
+This opens a browser window so you can look at the map visually.
+
 ```python
 import pyopendrive as odr
 
-# This will open the web viewer to your browser
 odr.xodr_web_viewer()
 
 ```
 
-### Convert XODR to and from SUMO net xml
+### Convert OpenDRIVE and SUMO files
+
+This shows how to move a map between OpenDRIVE and SUMO.
 
 ```python
 import pyopendrive as odr
@@ -87,23 +95,27 @@ path_net = "datasets/chatt.net.xml"
 
 Map = odr.readXodr(path_xodr)
 
-# Convert OpenDrive to SUMO network
+# Convert OpenDRIVE to a SUMO network
 sumo_net = xodr_to_net_xml(xodr_file, path_net)
 
-# Convert OpenDrive from SUMO network file
+# Convert OpenDRIVE from a SUMO network file
 Map = xodr_from_net_xml(net_file, xodr_file)
 
 ```
 
 If `netconvert` is not available, the SUMO helpers will raise an error.
 
-### Save a map back to OpenDRIVE
+### Save a map
+
+This writes the map back out as a `.xodr` file.
 
 ```python
 saved_path = Map.saveXodr("output/saved.xodr")
 ```
 
-### Query Map Information
+### Ask questions about the map
+
+This gathers a few counts and sample values so you can see what is in the road network.
 
 ```python
 import pyopendrive as odr

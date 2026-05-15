@@ -4,16 +4,20 @@
 # Author/Copyright: Mr. Xiangyong Luo
 # ##############################################################
 
-"""Tutorial: create a small OpenDRIVE map from an empty OpenDriveMap.
+"""A tiny OpenDRIVE map, explained very gently.
 
-This example builds the same map in two forms:
+Think of this script as making a very small toy road map from scratch.
+It builds the road in two ways at the same time:
 
-1. Python objects, so you can query roads, lanes, geometry, junctions,
-   objects, signals, meshes, and routing immediately.
-2. OpenDRIVE XML nodes, so ``save_xodr`` can write a real ``.xodr`` file.
+1. As Python objects, so the package can answer questions about the road.
+2. As OpenDRIVE XML, so the map can be saved as a real .xodr file.
 
-The reader normally derives lane borders while parsing XML. When building
-manually, we set those simple borders ourselves.
+If you are reading this as a first-time learner, the big idea is simple:
+we make a road, give it lanes, add one stop bar and one speed sign, connect
+two roads with a junction, and then save the result.
+
+The package usually figures out some lane borders when it reads a file.
+Because we are building the map by hand here, we set those borders ourselves.
 """
 
 from __future__ import annotations
@@ -97,7 +101,7 @@ def create_straight_road(
     heading: float,
     junction: str = "-1",
 ) -> xodr.Road:
-    """Create a straight road with plan-view geometry and basic lanes."""
+    """Create a straight road with simple geometry and three basic lanes."""
 
     road = xodr.Road(road_id, length, junction, name)
     road.ref_line.s0_to_geometry[0.0] = xodr.Line(0.0, x, y, heading, length)
@@ -113,7 +117,7 @@ def create_straight_road(
 
 
 def road_to_xml(road: xodr.Road) -> ET.Element:
-    """Serialize the small subset used by this tutorial."""
+    """Turn the road into the small piece of XML used in this tutorial."""
 
     road_node = ET.Element(
         "road",
@@ -404,24 +408,25 @@ def build_demo_map() -> odr.OpenDriveMap:
 def main() -> None:
     odr_map = build_demo_map()
 
-    print(f"roads: {[road.id for road in odr_map.getRoads()]}")
-    print(f"junctions: {[junction.id for junction in odr_map.getJunctions()]}")
+    print("We just built a very small road map.")
+    print(f"Roads in the map: {[road.id for road in odr_map.getRoads()]}")
+    print(f"Junctions in the map: {[junction.id for junction in odr_map.getJunctions()]}")
 
     road = odr_map.getRoad("1")
     lane_section = road.get_lanesection(5.0)
     right_lane = lane_section.get_lane(-1)
-    print(f"road 1 start xyz: {road.ref_line.get_xyz(0.0)}")
-    print(f"right lane width at s=5: {right_lane.lane_width.get(5.0)}")
-    print(f"right lane roadmarks: {[mark.type for mark in right_lane.get_roadmarks(0.0, road.length)]}")
-    print(f"road objects: {[obj.id for obj in road.get_road_objects()]}")
-    print(f"road signals: {[signal.id for signal in road.get_road_signals()]}")
+    print(f"Where road 1 starts in 3D space: {road.ref_line.get_xyz(0.0)}")
+    print(f"How wide the right lane is at the middle: {right_lane.lane_width.get(5.0)}")
+    print(f"Road paint on the right lane: {[mark.type for mark in right_lane.get_roadmarks(0.0, road.length)]}")
+    print(f"Small objects on the road: {[obj.id for obj in road.get_road_objects()]}")
+    print(f"Traffic signs on the road: {[signal.id for signal in road.get_road_signals()]}")
 
     mesh = odr_map.getRoadNetworkMesh(eps=5.0)
-    print(f"lane mesh vertices: {len(mesh.lanes_mesh.vertices)}")
+    print(f"How many mesh points were made for the lanes: {len(mesh.lanes_mesh.vertices)}")
 
     output_file = Path(__file__).with_name("tutorial_created.xodr")
     odr_map.saveXodr(output_file)
-    print(f"saved: {output_file}")
+    print(f"The map was saved here: {output_file}")
 
 
 if __name__ == "__main__":

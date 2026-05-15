@@ -5,7 +5,9 @@ viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
 
 ## Files
 
-- `index.html` - MapLibre GL editor UI.
+- `index.html` - MapLibre GL editor shell.
+- `index_css.css` - shared page and panel styling.
+- `index_js.js` - MapLibre GL editor logic.
 - `__init__.py` - local HTTP API server and OpenDRIVE to GeoJSON converters.
 - `__main__.py` - command line entry point for `python -m pyopendrive.web`.
 - `data.xodr` - default startup network loaded when no `--xodr` path is given.
