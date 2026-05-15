@@ -53,6 +53,21 @@ def _as_xy(odr_map: Any, lon: float, lat: float) -> tuple[float, float]:
     return (float(x), float(y))
 
 
+def _geometry_has_finite_coordinates(geometry: dict[str, Any] | None) -> bool:
+    """Return ``False`` when a generated GeoJSON geometry contains NaN/Inf."""
+    if not geometry:
+        return False
+
+    def walk(coords: Any) -> bool:
+        if not isinstance(coords, list):
+            return False
+        if coords and isinstance(coords[0], (int, float)):
+            return len(coords) >= 2 and math.isfinite(float(coords[0])) and math.isfinite(float(coords[1]))
+        return all(walk(item) for item in coords)
+
+    return walk(geometry.get("coordinates"))
+
+
 def _road_feature(odr_map: Any, road: Any, eps: float = 2.0) -> dict[str, Any]:
     """Build the centerline feature used for fit, editing, and save support."""
     s_values = road.ref_line.approximate_linear(eps, 0.0, road.length)
@@ -86,6 +101,11 @@ def _road_feature(odr_map: Any, road: Any, eps: float = 2.0) -> dict[str, Any]:
 
 def _feature_collection(features: list[dict[str, Any]]) -> dict[str, Any]:
     """Wrap features with a bbox so the browser can quickly fit the map view."""
+    features = [
+        feature
+        for feature in features
+        if _geometry_has_finite_coordinates(feature.get("geometry"))
+    ]
     bbox = None
     if features:
         coords: list[list[float]] = []
@@ -482,7 +502,13 @@ def _environment_object_feature(
     props = feature["properties"]
     props["feature_type"] = "environment_object"
     props["object_role"] = "environment"
-    props["environment_type"] = props.get("type") or props.get("name") or "environment"
+    props["environment_type"] = (
+        getattr(obj, "environmentType", None)
+        or props.get("type")
+        or props.get("name")
+        or "environment"
+    )
+    props["object_color"] = getattr(obj, "objectColor", "") or props.get("object_color", "")
     return feature
 
 
@@ -656,8 +682,6 @@ def _apply_lane_geojson_edits(odr_map: Any, lane_geojson: dict[str, Any]) -> Non
     the current editor exposes.
     """
     features = lane_geojson.get("features") or []
-    if not features:
-        return
 
     root = odr_map.root
     lane_keys: set[tuple[str, float, int]] = set()
@@ -739,14 +763,15 @@ def _signals_node(road_node: ET.Element) -> ET.Element:
 def _apply_signal_geojson_edits(odr_map: Any, signal_geojson: dict[str, Any]) -> None:
     """Apply edited signal heads, posts, and mast arms back to XML."""
     features = signal_geojson.get("features") or []
-    if not features:
-        return
 
     root = odr_map.root
     seen_objects: set[tuple[str, str]] = set()
     seen_signals: set[tuple[str, str]] = set()
-    has_object_features = False
-    has_signal_features = False
+    # The browser sends the whole visible signal/object collection on save.
+    # Treat it as authoritative so deleting the last signal, support, or
+    # environment object is saved instead of being ignored as an empty update.
+    has_object_features = True
+    has_signal_features = True
 
     for feature in features:
         props = feature.get("properties") or {}
@@ -799,6 +824,10 @@ def _apply_signal_geojson_edits(odr_map: Any, signal_geojson: dict[str, Any]) ->
                     "length": props.get("length", 0.5),
                 },
             )
+            if props.get("feature_type") == "environment_object":
+                obj_node.set("environmentType", _fmt(props.get("environment_type") or props.get("type") or "environment"))
+                obj_node.set("objectColor", _fmt(props.get("object_color") or ""))
+                obj_node.set("source", _fmt(props.get("source") or "maplibre-gl-geo-editor"))
         elif props.get("feature_type") == "signal":
             has_signal_features = True
             signal_id = str(props.get("signal_id") or props.get("signal_key") or "")
