@@ -169,11 +169,18 @@ def _projection_for_sumo(proj4: str) -> str:
         "+vunits=",
         "+vto_meter=",
     )
-    return " ".join(
+    tokens = [
         token
         for token in proj4.split()
         if not token.startswith(vertical_grid_prefixes)
-    )
+    ]
+    if tokens and not any(
+        token.startswith(("+proj=", "+init=", "+epsg=", "+crs="))
+        for token in tokens
+    ):
+        tokens.insert(0, "+proj=tmerc")
+        tokens.extend(["+k=1", "+x_0=0", "+y_0=0", "+datum=WGS84", "+units=m", "+no_defs"])
+    return " ".join(tokens)
 
 
 def _bool(node: ET.Element, name: str, default: bool = False) -> bool:

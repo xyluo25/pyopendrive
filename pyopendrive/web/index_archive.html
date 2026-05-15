@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>OpenDrive Viewer</title>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Online OpenDRIVE viewer. Load .xodr files to view them in 3D and export an .obj model from it. The viewer is implemented in C++, using WebGL and is based on the open source C++ library libOpenDRIVE."
+    />
+    <meta
+      name="keywords"
+      content="opendrive, xodr, viewer, odr, online, visualizer, viewer"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
+    />
+    <meta />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: black;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .fullscreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .centered {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      #xodr_file_input_btn {
+        position: absolute;
+        bottom: 1em;
+        left: 1em;
+        font-size: 0.8em;
+        display: none;
+      }
+
+      #loading_screen {
+        background-color: black;
+      }
+
+      #loading_screen_msg {
+        font-size: 1.5em;
+        color: white;
+      }
+
+      #links {
+        position: absolute;
+        bottom: 0.1em;
+        right: 0.1em;
+        display: flex;
+        align-items: center;
+      }
+
+      .icon {
+        color: lightgray;
+        font-size: 1.7em;
+        margin-right: 0.2em;
+      }
+
+      #help_msg {
+        position: absolute;
+        top: 2em;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+    </style>
+    <link rel="stylesheet" href="./fonts/font-awesome.min.css" />
+    <link rel="stylesheet" href="./fonts/bootstrap.min.css" />
+  </head>
+
+  <body>
+    <canvas
+      id="canvas"
+      class="fullscreen"
+      oncontextmenu="event.preventDefault()"
+    ></canvas>
+    <div id="loading_screen" class="fullscreen"></div>
+    <p id="loading_screen_msg" class="centered">
+      <i class="fa fa-hourglass"></i> <span id="loading_screen_msg_txt"></span>
+    </p>
+    <input
+      id="xodr_file_input"
+      type="file"
+      accept=".xodr,.xml"
+      onchange="on_file_select(this.files[0])"
+      style="display: none"
+    />
+
+    <button id="xodr_file_input_btn" type="button" class="btn btn-primary">
+      <i class="fa fa-upload"></i> <span id="xodr_file_input_btn_txt"></span>
+    </button>
+
+    <div id="help_msg">
+      <i style="color: lightgray">
+        <span id="help_msg_txt1"></span>
+        <br />
+        <i class="fa fa-info-circle"></i>
+        <span id="help_msg_txt2"></span>
+      </i>
+    </div>
+
+    <script src="./viewer.local-assets.js"></script>
+    <script src="./viewer.js"></script>
+
+    <script type="text/javascript">
+      const canvas = document.getElementById("canvas");
+      const pendingXodrWindowNamePrefix = "ODR_VIEWER_PENDING_XODR:";
+      const px_ratio = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * px_ratio; // drawing buffer size
+      canvas.height = canvas.clientHeight * px_ratio;
+      window.addEventListener("resize", () => {
+        const px_ratio = window.devicePixelRatio || 1;
+        canvas.width = canvas.clientWidth * px_ratio;
+        canvas.height = canvas.clientHeight * px_ratio;
+      });
+
+      const lang =
+        new URLSearchParams(window.location.search).get("lang") || "en";
+      const translations = {
+        loading_screen_msg_txt: { en: "Loading...", zh: "正在加载..." },
+        xodr_file_input_btn_txt: { en: "Open .xodr", zh: "打开 .xodr" },
+        help_msg_txt1: {
+          en: "<b>Pan</b> - left mouse, <b>Zoom</b> - mousewheel, <b>Orbit</b> - right or left mouse + ctrl or shiftKey",
+        },
+        help_msg_txt2: {
+          en: "xodr files are processed locally on your device, with no data being uploaded",
+        },
+      };
+      Object.keys(translations).forEach((elem_id) => {
+        document.getElementById(elem_id).innerHTML =
+          translations[elem_id][lang] || translations[elem_id]["en"];
+      });
+
+      document
+        .getElementById("xodr_file_input_btn")
+        .addEventListener("click", function () {
+          document.getElementById("xodr_file_input").click();
+        });
+
+      var OpenDriveViewer = null;
+      var ModuleOdrViewer = null;
+      var requestId = undefined;
+
+      function offer_file_as_download(filename) {
+        let content = ModuleOdrViewer.FS.readFile(filename);
+        console.log(
+          `offering download of "${filename}", with ${content.length} bytes...`
+        );
+
+        var a = document.createElement("a");
+        a.download = filename;
+        a.href = URL.createObjectURL(new Blob([content]));
+        a.style.display = "none";
+
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }, 2000);
+      }
+
+      function on_file_select(file) {
+        if (!file) return;
+        let file_reader = new FileReader();
+        file_reader.onload = () => {
+          load_selected_file_as_initial_map(file_reader.result);
+        };
+        file_reader.readAsText(file);
+      }
+
+      async function load_selected_file_as_initial_map(file_text) {
+        const fitted_file_text = fit_header_bounds_to_map(file_text);
+
+        try {
+          await store_pending_xodr_file(fitted_file_text);
+          const url = new URL(window.location.href);
+          url.searchParams.set("pending_xodr", "1");
+          url.searchParams.set("pending_ts", Date.now().toString());
+          window.location.href = url.href;
+        } catch (error) {
+          console.warn("Could not restart viewer with selected file.", error);
+          load_file(fitted_file_text, true);
+        }
+      }
+
+      function open_pending_xodr_db() {
+        return new Promise((resolve, reject) => {
+          if (!window.indexedDB) {
+            reject(new Error("IndexedDB is not available."));
+            return;
+          }
+
+          const request = indexedDB.open("odr_viewer_pending_files", 1);
+          request.onupgradeneeded = () => {
+            request.result.createObjectStore("files");
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      function with_timeout(promise, milliseconds, message) {
+        let timeout_id = null;
+        const timeout = new Promise((_, reject) => {
+          timeout_id = setTimeout(() => reject(new Error(message)), milliseconds);
+        });
+        return Promise.race([promise, timeout]).finally(() => clearTimeout(timeout_id));
+      }
+
+      async function store_pending_xodr_file(file_text) {
+        try {
+          window.name = pendingXodrWindowNamePrefix + file_text;
+          if (window.name.startsWith(pendingXodrWindowNamePrefix)) {
+            return;
+          }
+        } catch (error) {
+          console.warn("window.name pending file write failed; trying IndexedDB.", error);
+        }
+
+        try {
+          const db = await with_timeout(
+            open_pending_xodr_db(),
+            3000,
+            "Timed out opening pending xodr IndexedDB."
+          );
+          await with_timeout(new Promise((resolve, reject) => {
+            const tx = db.transaction("files", "readwrite");
+            tx.objectStore("files").put(file_text, "pending_xodr_file");
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+          }), 8000, "Timed out writing pending xodr file.");
+          db.close();
+        } catch (error) {
+          console.warn("IndexedDB pending file write failed; trying sessionStorage.", error);
+          sessionStorage.setItem("pending_xodr_file", file_text);
+        }
+      }
+
+      function attr_number(elem, name, fallback = 0) {
+        const value = elem ? Number(elem.getAttribute(name)) : NaN;
+        return Number.isFinite(value) ? value : fallback;
+      }
+
+      function sample_geometry_bounds(geometry, bounds) {
+        const x = attr_number(geometry, "x");
+        const y = attr_number(geometry, "y");
+        const hdg = attr_number(geometry, "hdg");
+        const length = Math.max(0, attr_number(geometry, "length"));
+        const arc = Array.from(geometry.children).find(
+          (child) => child.tagName === "arc"
+        );
+        const steps = Math.max(2, Math.ceil(length / 10));
+
+        for (let i = 0; i <= steps; i += 1) {
+          const ds = (length * i) / steps;
+          let px = x + ds * Math.cos(hdg);
+          let py = y + ds * Math.sin(hdg);
+
+          if (arc) {
+            const curvature = attr_number(arc, "curvature");
+            if (Math.abs(curvature) > 1e-9) {
+              const radius = 1 / curvature;
+              const theta = hdg + ds * curvature;
+              px = x + radius * (Math.sin(theta) - Math.sin(hdg));
+              py = y - radius * (Math.cos(theta) - Math.cos(hdg));
+            }
+          }
+
+          bounds.minX = Math.min(bounds.minX, px);
+          bounds.maxX = Math.max(bounds.maxX, px);
+          bounds.minY = Math.min(bounds.minY, py);
+          bounds.maxY = Math.max(bounds.maxY, py);
+        }
+      }
+
+      function fit_header_bounds_to_map(file_text) {
+        try {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(file_text, "application/xml");
+          if (xml.querySelector("parsererror")) return file_text;
+
+          const header = xml.querySelector("OpenDRIVE > header");
+          const geometries = xml.querySelectorAll("OpenDRIVE > road > planView > geometry");
+          if (!header || geometries.length === 0) return file_text;
+
+          const bounds = {
+            minX: Number.POSITIVE_INFINITY,
+            maxX: Number.NEGATIVE_INFINITY,
+            minY: Number.POSITIVE_INFINITY,
+            maxY: Number.NEGATIVE_INFINITY,
+          };
+
+          geometries.forEach((geometry) => sample_geometry_bounds(geometry, bounds));
+          if (
+            !Number.isFinite(bounds.minX) ||
+            !Number.isFinite(bounds.maxX) ||
+            !Number.isFinite(bounds.minY) ||
+            !Number.isFinite(bounds.maxY)
+          ) {
+            return file_text;
+          }
+
+          const span = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, 1);
+          const padding = Math.max(25, span * 0.05);
+          header.setAttribute("west", (bounds.minX - padding).toFixed(2));
+          header.setAttribute("east", (bounds.maxX + padding).toFixed(2));
+          header.setAttribute("south", (bounds.minY - padding).toFixed(2));
+          header.setAttribute("north", (bounds.maxY + padding).toFixed(2));
+
+          return new XMLSerializer().serializeToString(xml);
+        } catch (error) {
+          console.warn("Could not fit OpenDRIVE header bounds.", error);
+          return file_text;
+        }
+      }
+
+      function load_file(file_text, clear_map) {
+        window.requestAnimationFrame(() => {
+          document.getElementById("loading_screen").style.display = "block";
+          document.getElementById("loading_screen_msg").style.display = "block";
+          document.getElementById("xodr_file_input_btn").style.display = "none";
+          setTimeout(() => {
+            if (clear_map) {
+              try {
+                ModuleOdrViewer["FS_unlink"]("./data.xodr");
+              } catch (error) {
+                console.warn(error);
+              }
+            }
+            ModuleOdrViewer["FS_createDataFile"](
+              ".",
+              "data.xodr",
+              file_text,
+              true,
+              true
+            );
+            OpenDriveViewer.load_map("./data.xodr", 0.1, true);
+
+            document.getElementById("loading_screen").style.display = "none";
+            document.getElementById("loading_screen_msg").style.display =
+              "none";
+            document.getElementById("xodr_file_input_btn").style.display =
+              "block";
+          }, 0);
+        });
+      }
+
+      function render() {
+        OpenDriveViewer.render();
+        requestAnimationFrame(render);
+      }
+
+      const moduleOptions =
+        window.location.protocol === "file:" &&
+        typeof window.createLocalOdrViewerModuleOptions === "function"
+          ? window.createLocalOdrViewerModuleOptions()
+          : {};
+
+      async function take_pending_xodr_file() {
+        if (window.name.startsWith(pendingXodrWindowNamePrefix)) {
+          const file_text = window.name.slice(pendingXodrWindowNamePrefix.length);
+          window.name = "";
+          return file_text;
+        }
+
+        let indexed_db_file = null;
+        try {
+          const db = await with_timeout(
+            open_pending_xodr_db(),
+            3000,
+            "Timed out opening pending xodr IndexedDB."
+          );
+          indexed_db_file = await with_timeout(new Promise((resolve, reject) => {
+            const tx = db.transaction("files", "readwrite");
+            const store = tx.objectStore("files");
+            const request = store.get("pending_xodr_file");
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+            tx.oncomplete = () => db.close();
+            tx.onerror = () => db.close();
+            tx.onabort = () => db.close();
+          }), 8000, "Timed out reading pending xodr file.");
+
+          if (indexed_db_file !== null) {
+            const db = await with_timeout(
+              open_pending_xodr_db(),
+              3000,
+              "Timed out opening pending xodr IndexedDB for cleanup."
+            );
+            await with_timeout(new Promise((resolve, reject) => {
+              const tx = db.transaction("files", "readwrite");
+              tx.objectStore("files").delete("pending_xodr_file");
+              tx.oncomplete = resolve;
+              tx.onerror = () => reject(tx.error);
+              tx.onabort = () => reject(tx.error);
+            }), 3000, "Timed out cleaning pending xodr file.");
+            db.close();
+            return indexed_db_file;
+          }
+        } catch (error) {
+          console.warn("Could not read pending xodr file from IndexedDB.", error);
+        }
+
+        try {
+          const file_text = sessionStorage.getItem("pending_xodr_file");
+          if (file_text !== null) {
+            sessionStorage.removeItem("pending_xodr_file");
+          }
+          return file_text;
+        } catch (error) {
+          console.warn("Could not read pending xodr file.", error);
+          return null;
+        }
+      }
+
+      function should_load_pending_xodr_file() {
+        return new URLSearchParams(window.location.search).get("pending_xodr") === "1";
+      }
+
+      function clear_pending_xodr_url_params() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("pending_xodr");
+        url.searchParams.delete("pending_ts");
+        window.history.replaceState({}, document.title, url.href);
+      }
+
+      OdrViewer(moduleOptions).then(async (Module) => {
+        ModuleOdrViewer = Module;
+        ModuleOdrViewer["canvas"] = (function () {
+          return document.getElementById("canvas");
+        })();
+        OpenDriveViewer = ModuleOdrViewer.Viewer.get_instance();
+        OpenDriveViewer.set_language(lang);
+        const pending_xodr_file = should_load_pending_xodr_file()
+          ? await take_pending_xodr_file()
+          : null;
+        if (should_load_pending_xodr_file()) {
+          clear_pending_xodr_url_params();
+        }
+        if (pending_xodr_file !== null) {
+          try {
+            ModuleOdrViewer["FS_unlink"]("./data.xodr");
+          } catch (error) {
+            console.warn(error);
+          }
+          ModuleOdrViewer["FS_createDataFile"](
+            ".",
+            "data.xodr",
+            pending_xodr_file,
+            true,
+            true
+          );
+        }
+        OpenDriveViewer.load_map("./data.xodr", 0.1, true);
+
+        render();
+        document.getElementById("loading_screen").style.display = "none";
+        document.getElementById("loading_screen_msg").style.display = "none";
+        document.getElementById("xodr_file_input_btn").style.display = "block";
+
+        setTimeout(function () {
+          document.getElementById("help_msg").style.display = "none";
+        }, 10000);
+      });
+    </script>
+  </body>
+</html>

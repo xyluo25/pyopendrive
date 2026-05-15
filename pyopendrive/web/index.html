@@ -74,6 +74,209 @@
         font-size: 13px;
       }
 
+      #basemap_control {
+        position: absolute;
+        right: 12px;
+        bottom: 52px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid rgba(20, 24, 28, 0.16);
+        border-radius: 6px;
+        color: #1f2933;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 22px rgba(20, 24, 28, 0.12);
+        font-size: 13px;
+      }
+
+      #basemap_control label {
+        margin: 0;
+        color: #667085;
+        font-weight: 400;
+      }
+
+      #basemap_select {
+        height: 30px;
+        min-width: 180px;
+        border: 1px solid rgba(20, 24, 28, 0.2);
+        border-radius: 4px;
+        color: #111827;
+        background: #ffffff;
+      }
+
+      #spotlight {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        z-index: 2;
+        width: 300px;
+        min-width: 240px;
+        max-width: calc(100% - 24px);
+        padding: 10px 12px;
+        border: 1px solid rgba(20, 24, 28, 0.16);
+        border-radius: 6px;
+        color: #1f2933;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 22px rgba(20, 24, 28, 0.12);
+        font-size: 13px;
+      }
+
+      #spotlight_title {
+        display: inline-flex;
+        align-items: center;
+        color: #111827;
+        font-size: 14px;
+      }
+
+      #spotlight_header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        cursor: move;
+        user-select: none;
+      }
+
+      #spotlight_toggle {
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(20, 24, 28, 0.18);
+        border-radius: 4px;
+        background: #ffffff;
+        color: #1f2933;
+        line-height: 1;
+      }
+
+      #spotlight_header_controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: default;
+      }
+
+      .spotlight-resize-handle {
+        position: absolute;
+        top: 0;
+        width: 8px;
+        height: 100%;
+        cursor: ew-resize;
+        touch-action: none;
+      }
+
+      #spotlight_resize_handle_left {
+        left: -4px;
+      }
+
+      #spotlight_resize_handle_right {
+        right: -4px;
+      }
+
+      .spotlight-resize-handle::after {
+        content: "";
+        position: absolute;
+        top: 12px;
+        width: 2px;
+        height: calc(100% - 24px);
+        border-radius: 2px;
+        background: rgba(20, 24, 28, 0.18);
+      }
+
+      #spotlight_resize_handle_left::after {
+        left: 3px;
+      }
+
+      #spotlight_resize_handle_right::after {
+        right: 3px;
+      }
+
+      #spotlight.collapsed #spotlight_content {
+        display: none;
+      }
+
+      #spotlight.collapsed {
+        width: auto;
+      }
+
+      #attribute_editor {
+        margin-top: 0;
+      }
+
+      #attribute_editor_title {
+        display: block;
+        margin-bottom: 6px;
+        color: #111827;
+      }
+
+      #edit_actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      #edit_actions button {
+        min-width: 0;
+        border: 1px solid rgba(20, 24, 28, 0.18);
+        border-radius: 4px;
+        padding: 5px 6px;
+        color: #111827;
+        background: #ffffff;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      #edit_actions button:hover {
+        background: #f2f4f7;
+      }
+
+      #attribute_fields {
+        display: grid;
+        gap: 6px;
+        max-height: min(44vh, 420px);
+        overflow: auto;
+        padding-right: 2px;
+      }
+
+      .attribute-row {
+        display: grid;
+        grid-template-columns: minmax(86px, 0.42fr) minmax(130px, 1fr);
+        gap: 8px;
+        align-items: center;
+      }
+
+      .attribute-row label {
+        min-width: 0;
+        margin: 0;
+        color: #667085;
+        overflow-wrap: anywhere;
+        font-weight: 400;
+      }
+
+      .attribute-row input,
+      .attribute-row textarea {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid rgba(20, 24, 28, 0.2);
+        border-radius: 4px;
+        padding: 4px 6px;
+        color: #111827;
+        background: #fff;
+        font: inherit;
+      }
+
+      .attribute-row input[type="checkbox"] {
+        width: auto;
+        justify-self: start;
+      }
+
+      .attribute-row textarea {
+        min-height: 58px;
+        resize: vertical;
+      }
+
       #xodr_file_input {
         display: none;
       }
@@ -83,6 +286,21 @@
           left: 8px;
           right: 8px;
           max-width: none;
+        }
+
+        #spotlight {
+          top: auto;
+          bottom: 96px;
+          left: 8px;
+          right: 8px;
+          width: auto;
+        }
+
+        #basemap_control {
+          left: 8px;
+          right: 8px;
+          bottom: 52px;
+          justify-content: space-between;
         }
       }
     </style>
@@ -108,6 +326,37 @@
         Reload
       </button>
     </div>
+    <div id="basemap_control">
+      <label for="basemap_select">Basemap</label>
+      <select id="basemap_select"></select>
+    </div>
+    <div id="spotlight">
+      <div id="spotlight_header">
+        <strong id="spotlight_title">OpenDriveViewer</strong>
+        <div id="spotlight_header_controls">
+          <button id="spotlight_toggle" type="button" title="Fold panel">-</button>
+        </div>
+      </div>
+      <div id="spotlight_content">
+        <div id="attribute_editor">
+          <strong id="attribute_editor_title">Selected Data</strong>
+          <div id="edit_actions">
+            <button id="add_lane_btn" type="button">Add Lane</button>
+            <button id="delete_feature_btn" type="button">Delete</button>
+            <button id="copy_lane_link_btn" type="button">Copy Lane Link</button>
+            <button id="set_predecessor_btn" type="button">Set Pred</button>
+            <button id="set_successor_btn" type="button">Set Succ</button>
+            <button id="add_signal_btn" type="button">Add Signal</button>
+            <button id="add_post_btn" type="button">Add Post</button>
+            <button id="add_mastarm_btn" type="button">Add Mast Arm</button>
+            <button id="undo_move_btn" type="button">Undo Move</button>
+          </div>
+          <div id="attribute_fields"></div>
+        </div>
+      </div>
+      <div id="spotlight_resize_handle_left" class="spotlight-resize-handle" title="Resize panel"></div>
+      <div id="spotlight_resize_handle_right" class="spotlight-resize-handle" title="Resize panel"></div>
+    </div>
     <div id="status">Loading OpenDRIVE network...</div>
 
     <script type="module">
@@ -120,24 +369,367 @@
       const saveButton = document.getElementById("save_xodr_btn");
       const fitButton = document.getElementById("fit_btn");
       const reloadButton = document.getElementById("reload_btn");
+      const basemapSelect = document.getElementById("basemap_select");
+      const spotlight = document.getElementById("spotlight");
+      const spotlightToggle = document.getElementById("spotlight_toggle");
+      const spotlightHeader = document.getElementById("spotlight_header");
+      const spotlightResizeHandleLeft = document.getElementById("spotlight_resize_handle_left");
+      const spotlightResizeHandleRight = document.getElementById("spotlight_resize_handle_right");
+      const attributeFields = document.getElementById("attribute_fields");
+      const addLaneButton = document.getElementById("add_lane_btn");
+      const deleteFeatureButton = document.getElementById("delete_feature_btn");
+      const copyLaneLinkButton = document.getElementById("copy_lane_link_btn");
+      const setPredecessorButton = document.getElementById("set_predecessor_btn");
+      const setSuccessorButton = document.getElementById("set_successor_btn");
+      const addSignalButton = document.getElementById("add_signal_btn");
+      const addPostButton = document.getElementById("add_post_btn");
+      const addMastArmButton = document.getElementById("add_mastarm_btn");
+      const undoMoveButton = document.getElementById("undo_move_btn");
 
       let geoEditor = null;
       let currentFilename = "network.xodr";
+      let spotlightEventsRegistered = false;
+      let laneSelectionEventsRegistered = false;
+      let selectedFeature = null;
+      let copiedLaneLink = null;
+      let dragState = null;
+      let undoStack = [];
       let currentGeoJson = {
         type: "FeatureCollection",
         features: [],
       };
+      let currentLaneGeoJson = {
+        type: "FeatureCollection",
+        features: [],
+      };
+      let currentSignalGeoJson = {
+        type: "FeatureCollection",
+        features: [],
+      };
+      let pendingStyleRestore = null;
+      let restoreRequestId = 0;
+
+      const basemaps = {
+        openstreetmap: {
+          label: "OpenStreetMap",
+          tiles: [
+            "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          ],
+          attribution: "&copy; OpenStreetMap contributors",
+        },
+        google: {
+          label: "Google Road",
+          tiles: ["https://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"],
+          attribution: "&copy; Google",
+        },
+        google_satellite: {
+          label: "Google Satellite",
+          tiles: ["https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"],
+          attribution: "&copy; Google",
+        },
+        carto_light: {
+          label: "Carto Light",
+          tiles: [
+            "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+            "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+            "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          ],
+          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+        },
+        carto_dark: {
+          label: "Carto Dark",
+          tiles: [
+            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+            "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          ],
+          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+        },
+        esri_imagery: {
+          label: "Esri Imagery",
+          tiles: [
+            "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          ],
+          attribution: "Tiles &copy; Esri",
+        },
+        opentopomap: {
+          label: "OpenTopoMap",
+          tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png"],
+          attribution: "Map data &copy; OpenStreetMap contributors, SRTM | Style &copy; OpenTopoMap",
+        },
+        osm_hot: {
+          label: "OSM Humanitarian",
+          tiles: ["https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"],
+          attribution: "&copy; OpenStreetMap contributors, HOT",
+        },
+        gridmesh: {
+          label: "Grid Mesh",
+          kind: "gridmesh",
+          attribution: "Local OpenDRIVE grid",
+        },
+      };
+
+      function basemapStyle(basemapId) {
+        const basemap = basemaps[basemapId] || basemaps.openstreetmap;
+        if (basemap.kind === "gridmesh") {
+          return {
+            version: 8,
+            sources: {},
+            layers: [
+              {
+                id: "gridmesh-background",
+                type: "background",
+                paint: {
+                  "background-color": "#05070a",
+                },
+              },
+            ],
+          };
+        }
+        return {
+        version: 8,
+        sources: {
+          osm: {
+            type: "raster",
+            tiles: basemap.tiles,
+            tileSize: 256,
+            attribution: basemap.attribution,
+          },
+        },
+        layers: [
+          {
+            id: "osm",
+            type: "raster",
+            source: "osm",
+          },
+        ],
+      };
+      }
+
+      for (const [id, basemap] of Object.entries(basemaps)) {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = basemap.label;
+        basemapSelect.appendChild(option);
+      }
+      basemapSelect.value = localStorage.getItem("opendriveviewer_basemap") || "openstreetmap";
 
       const map = new maplibregl.Map({
         container: "map",
-        style: "https://demotiles.maplibre.org/style.json",
+        style: basemapStyle(basemapSelect.value),
         center: [-85.31, 35.05],
         zoom: 14,
+        pitch: 15,
+        maxPitch: 85,
+        bearing: 180,
         attributionControl: true,
       });
 
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
       map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+
+      function changeBasemap(basemapId) {
+        localStorage.setItem("opendriveviewer_basemap", basemapId);
+        const selected = selectedFeature;
+        pendingStyleRestore = selected;
+        restoreRequestId += 1;
+        map.setStyle(basemapStyle(basemapId));
+        scheduleOverlayRestore(restoreRequestId);
+      }
+
+      function featureCoordinates(feature) {
+        if (feature.geometry?.type === "LineString") {
+          return feature.geometry.coordinates;
+        }
+        if (feature.geometry?.type === "Polygon") {
+          return feature.geometry.coordinates.flat();
+        }
+        if (feature.geometry?.type === "Point") {
+          return [feature.geometry.coordinates];
+        }
+        return [];
+      }
+
+      function mergedOverlayBounds() {
+        const coords = [
+          ...currentLaneGeoJson.features.flatMap(featureCoordinates),
+          ...currentSignalGeoJson.features.flatMap(featureCoordinates),
+          ...currentGeoJson.features.flatMap(featureCoordinates),
+        ].filter((coord) => Array.isArray(coord) && coord.length >= 2);
+        if (coords.length === 0) return null;
+        return coords.reduce(
+          (box, coord) => box.extend(coord),
+          new maplibregl.LngLatBounds(coords[0], coords[0])
+        );
+      }
+
+      function niceGridStep(span) {
+        const target = Math.max(span / 36, 0.00001);
+        const exponent = Math.floor(Math.log10(target));
+        const base = 10 ** exponent;
+        for (const multiplier of [1, 2, 5, 10]) {
+          const step = multiplier * base;
+          if (step >= target) return step;
+        }
+        return base;
+      }
+
+      function gridMeshGeoJson() {
+        const bounds = mergedOverlayBounds();
+        if (!bounds) return emptyFeatureCollection();
+        const west = bounds.getWest();
+        const east = bounds.getEast();
+        const south = bounds.getSouth();
+        const north = bounds.getNorth();
+        const lonPad = Math.max((east - west) * 0.25, 0.002);
+        const latPad = Math.max((north - south) * 0.25, 0.002);
+        const minLon = west - lonPad;
+        const maxLon = east + lonPad;
+        const minLat = south - latPad;
+        const maxLat = north + latPad;
+        const step = niceGridStep(Math.max(maxLon - minLon, maxLat - minLat));
+        const majorStep = step * 5;
+        const features = [];
+
+        const startLon = Math.floor(minLon / step) * step;
+        for (let lon = startLon; lon <= maxLon + step * 0.5; lon += step) {
+          const major = Math.abs(Math.round(lon / majorStep) * majorStep - lon) < step * 0.01;
+          features.push({
+            type: "Feature",
+            properties: { grid_type: major ? "major" : "minor" },
+            geometry: { type: "LineString", coordinates: [[lon, minLat], [lon, maxLat]] },
+          });
+        }
+
+        const startLat = Math.floor(minLat / step) * step;
+        for (let lat = startLat; lat <= maxLat + step * 0.5; lat += step) {
+          const major = Math.abs(Math.round(lat / majorStep) * majorStep - lat) < step * 0.01;
+          features.push({
+            type: "Feature",
+            properties: { grid_type: major ? "major" : "minor" },
+            geometry: { type: "LineString", coordinates: [[minLon, lat], [maxLon, lat]] },
+          });
+        }
+
+        return {
+          type: "FeatureCollection",
+          features,
+        };
+      }
+
+      function setGridMeshSource() {
+        if ((basemapSelect.value || "") !== "gridmesh") return;
+        const geojson = gridMeshGeoJson();
+        if (map.getSource("gridmesh-lines")) {
+          map.getSource("gridmesh-lines").setData(geojson);
+          return;
+        }
+        map.addSource("gridmesh-lines", {
+          type: "geojson",
+          data: geojson,
+        });
+        map.addLayer({
+          id: "gridmesh-lines-minor",
+          type: "line",
+          source: "gridmesh-lines",
+          filter: ["==", ["get", "grid_type"], "minor"],
+          paint: {
+            "line-color": "#1b2330",
+            "line-width": 1,
+            "line-opacity": 0.92,
+          },
+        });
+        map.addLayer({
+          id: "gridmesh-lines-major",
+          type: "line",
+          source: "gridmesh-lines",
+          filter: ["==", ["get", "grid_type"], "major"],
+          paint: {
+            "line-color": "#344054",
+            "line-width": 1.35,
+            "line-opacity": 0.98,
+          },
+        });
+      }
+
+      function restoreOverlayLayersAfterStyleChange(requestId = restoreRequestId, attempt = 0) {
+        if (requestId !== restoreRequestId) return;
+        if (!map.isStyleLoaded()) {
+          if (attempt < 20) {
+            setTimeout(() => restoreOverlayLayersAfterStyleChange(requestId, attempt + 1), 100);
+          }
+          return;
+        }
+
+        setGridMeshSource();
+        setLaneSource(currentLaneGeoJson);
+        setSignalSource(currentSignalGeoJson);
+        setRoadSource(currentGeoJson);
+        if (pendingStyleRestore) {
+          setSpotlightFeature(pendingStyleRestore);
+        } else if (selectedFeature) {
+          setSpotlightFeature(selectedFeature);
+        }
+        pendingStyleRestore = null;
+      }
+
+      function scheduleOverlayRestore(requestId = restoreRequestId) {
+        const restore = () => restoreOverlayLayersAfterStyleChange(requestId);
+        map.once("style.load", restore);
+        map.once("idle", restore);
+        setTimeout(restore, 250);
+        setTimeout(restore, 750);
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function setSpotlightWidth(width) {
+        const maxWidth = Math.max(240, window.innerWidth - 24);
+        const nextWidth = clamp(Number(width) || 300, 240, Math.min(720, maxWidth));
+        spotlight.style.width = `${nextWidth}px`;
+        localStorage.setItem("opendriveviewer_width", String(Math.round(nextWidth)));
+      }
+
+      function setSpotlightPosition(left, top) {
+        const rect = spotlight.getBoundingClientRect();
+        const nextLeft = clamp(left, 8, Math.max(8, window.innerWidth - rect.width - 8));
+        const nextTop = clamp(top, 8, Math.max(8, window.innerHeight - rect.height - 8));
+        spotlight.style.left = `${nextLeft}px`;
+        spotlight.style.top = `${nextTop}px`;
+        spotlight.style.right = "auto";
+        localStorage.setItem("opendriveviewer_left", String(Math.round(nextLeft)));
+        localStorage.setItem("opendriveviewer_top", String(Math.round(nextTop)));
+      }
+
+      function setSpotlightLeftResize(left, width, top) {
+        const maxRight = window.innerWidth - 8;
+        const nextLeft = clamp(left, 8, maxRight - 240);
+        const nextWidth = clamp(width, 240, Math.min(720, maxRight - nextLeft));
+        const nextTop = clamp(top, 8, Math.max(8, window.innerHeight - spotlight.getBoundingClientRect().height - 8));
+        spotlight.style.left = `${nextLeft}px`;
+        spotlight.style.right = "auto";
+        spotlight.style.top = `${nextTop}px`;
+        spotlight.style.width = `${nextWidth}px`;
+        localStorage.setItem("opendriveviewer_left", String(Math.round(nextLeft)));
+        localStorage.setItem("opendriveviewer_top", String(Math.round(nextTop)));
+        localStorage.setItem("opendriveviewer_width", String(Math.round(nextWidth)));
+      }
+
+      function restoreSpotlightLayout() {
+        const storedWidth = Number(localStorage.getItem("opendriveviewer_width"));
+        if (Number.isFinite(storedWidth) && storedWidth > 0) {
+          setSpotlightWidth(storedWidth);
+        }
+        const storedLeft = Number(localStorage.getItem("opendriveviewer_left"));
+        const storedTop = Number(localStorage.getItem("opendriveviewer_top"));
+        if (Number.isFinite(storedLeft) && Number.isFinite(storedTop)) {
+          requestAnimationFrame(() => setSpotlightPosition(storedLeft, storedTop));
+        }
+      }
 
       function setStatus(message, isError = false) {
         status.textContent = message;
@@ -171,8 +763,13 @@
 
       function fitToGeoJson(geojson) {
         const coords = geojson.features.flatMap((feature) => {
-          if (feature.geometry?.type !== "LineString") return [];
-          return feature.geometry.coordinates;
+          if (feature.geometry?.type === "LineString") {
+            return feature.geometry.coordinates;
+          }
+          if (feature.geometry?.type === "Polygon") {
+            return feature.geometry.coordinates.flat();
+          }
+          return [];
         });
         if (coords.length === 0) return;
         const bounds = coords.reduce(
@@ -180,6 +777,1008 @@
           new maplibregl.LngLatBounds(coords[0], coords[0])
         );
         map.fitBounds(bounds, { padding: 60, duration: 500 });
+      }
+
+      function emptyFeatureCollection() {
+        return {
+          type: "FeatureCollection",
+          features: [],
+        };
+      }
+
+      function laneKeyFromProperties(properties) {
+        if (!properties) return "";
+        if (properties.lane_key) return String(properties.lane_key);
+        return `${properties.road_id}/${Number(properties.lanesection_s0 || 0).toFixed(6)}/${properties.lane_id}`;
+      }
+
+      function findLaneFeature(roadId, laneSectionS0, laneId) {
+        const section = Number(laneSectionS0);
+        return currentLaneGeoJson.features.find((feature) => {
+          const props = feature.properties || {};
+          return (
+            String(props.road_id) === String(roadId) &&
+            String(props.lane_id) === String(laneId) &&
+            Math.abs(Number(props.lanesection_s0 || 0) - section) < 1e-6
+          );
+        });
+      }
+
+      function findLaneFeatureByKey(laneKey) {
+        return currentLaneGeoJson.features.find((feature) => {
+          return laneKeyFromProperties(feature.properties) === String(laneKey);
+        });
+      }
+
+      function findRoadFeatureById(roadId) {
+        return currentGeoJson.features.find((feature) => {
+          return String(feature.properties?.road_id || feature.id) === String(roadId);
+        });
+      }
+
+      function findSignalFeatureByKey(signalKey) {
+        return currentSignalGeoJson.features.find((feature) => {
+          return String(feature.properties?.signal_key || feature.id) === String(signalKey);
+        });
+      }
+
+      function findSignalObjectFeatureByKey(objectKey) {
+        return currentSignalGeoJson.features.find((feature) => {
+          return String(feature.properties?.object_key || feature.id) === String(objectKey);
+        });
+      }
+
+      function resolveSourceFeature(feature) {
+        if (!feature) return null;
+        if (feature.properties?.feature_type === "signal") {
+          return findSignalFeatureByKey(feature.properties?.signal_key || feature.id) || feature;
+        }
+        if (feature.properties?.feature_type === "signal_object") {
+          return findSignalObjectFeatureByKey(feature.properties?.object_key || feature.id) || feature;
+        }
+        if (feature.geometry?.type === "Polygon") {
+          const laneKey = laneKeyFromProperties(feature.properties);
+          return findLaneFeatureByKey(laneKey) || feature;
+        }
+        if (feature.geometry?.type === "LineString") {
+          return findRoadFeatureById(feature.properties?.road_id || feature.id) || feature;
+        }
+        return feature;
+      }
+
+      function propertyList(value) {
+        if (Array.isArray(value)) return value;
+        if (value === undefined || value === null || value === "") return [];
+        if (typeof value === "string") {
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) return parsed;
+          } catch (_) {
+            return [value];
+          }
+        }
+        return [value];
+      }
+
+      function adjacentLaneFeatures(feature) {
+        if (!feature) return [];
+        const props = feature.properties || {};
+        const adjacent = [];
+        for (const laneKey of propertyList(props.predecessor_keys)) {
+          const predecessor = findLaneFeatureByKey(laneKey);
+          if (predecessor) adjacent.push({ ...predecessor, properties: { ...predecessor.properties, relation: "predecessor" } });
+        }
+        for (const laneKey of propertyList(props.successor_keys)) {
+          const successor = findLaneFeatureByKey(laneKey);
+          if (successor) adjacent.push({ ...successor, properties: { ...successor.properties, relation: "successor" } });
+        }
+        if (adjacent.length === 0 && props.predecessor !== undefined && Number(props.predecessor) !== 0) {
+          const predecessor = findLaneFeature(props.road_id, props.lanesection_s0, props.predecessor);
+          if (predecessor) adjacent.push({ ...predecessor, properties: { ...predecessor.properties, relation: "predecessor" } });
+        }
+        if (adjacent.length === 0 && props.successor !== undefined && Number(props.successor) !== 0) {
+          const successor = findLaneFeature(props.road_id, props.lanesection_s0, props.successor);
+          if (successor) adjacent.push({ ...successor, properties: { ...successor.properties, relation: "successor" } });
+        }
+        const seen = new Set();
+        return adjacent.filter((item) => {
+          const key = `${laneKeyFromProperties(item.properties)}:${item.properties?.relation}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
+      function attributeValueToText(value) {
+        if (Array.isArray(value) || (value && typeof value === "object")) {
+          return JSON.stringify(value);
+        }
+        if (value === undefined || value === null) return "";
+        return String(value);
+      }
+
+      function parseAttributeValue(rawValue, field) {
+        if (typeof rawValue === "boolean") return field.checked;
+        if (typeof rawValue === "number") {
+          const value = Number(field.value);
+          return Number.isFinite(value) ? value : rawValue;
+        }
+        if (Array.isArray(rawValue) || (rawValue && typeof rawValue === "object")) {
+          try {
+            return JSON.parse(field.value);
+          } catch (_) {
+            return rawValue;
+          }
+        }
+        return field.value;
+      }
+
+      function localRect(lon, lat, heading, lengthM, widthM) {
+        const halfLength = Math.max(0.2, Number(lengthM || 0.4) * 0.5);
+        const halfWidth = Math.max(0.2, Number(widthM || 0.4) * 0.5);
+        const latScale = 110540;
+        const lonScale = Math.max(1e-9, 111320 * Math.cos((Number(lat) * Math.PI) / 180));
+        const along = [Math.cos(heading), Math.sin(heading)];
+        const across = [-Math.sin(heading), Math.cos(heading)];
+        const toLonLat = (xMeters, yMeters) => [lon + xMeters / lonScale, lat + yMeters / latScale];
+        return [
+          toLonLat(along[0] * halfLength + across[0] * halfWidth, along[1] * halfLength + across[1] * halfWidth),
+          toLonLat(along[0] * halfLength - across[0] * halfWidth, along[1] * halfLength - across[1] * halfWidth),
+          toLonLat(-along[0] * halfLength - across[0] * halfWidth, -along[1] * halfLength - across[1] * halfWidth),
+          toLonLat(-along[0] * halfLength + across[0] * halfWidth, -along[1] * halfLength + across[1] * halfWidth),
+          toLonLat(along[0] * halfLength + across[0] * halfWidth, along[1] * halfLength + across[1] * halfWidth),
+        ];
+      }
+
+      function meterBox(lon, lat, sizeM) {
+        return localRect(lon, lat, 0, sizeM, sizeM);
+      }
+
+      function polygonCenter(feature) {
+        const ring = feature.geometry?.coordinates?.[0] || [];
+        const points = ring.length > 1 ? ring.slice(0, -1) : ring;
+        if (points.length === 0) return null;
+        const totals = points.reduce((acc, coord) => {
+          return [acc[0] + Number(coord[0] || 0), acc[1] + Number(coord[1] || 0)];
+        }, [0, 0]);
+        return [totals[0] / points.length, totals[1] / points.length];
+      }
+
+      function translateCoordinates(coordinates, dLng, dLat) {
+        if (!Array.isArray(coordinates)) return coordinates;
+        if (typeof coordinates[0] === "number") {
+          return [Number(coordinates[0]) + dLng, Number(coordinates[1]) + dLat];
+        }
+        return coordinates.map((item) => translateCoordinates(item, dLng, dLat));
+      }
+
+      function translateFeature(feature, dLng, dLat) {
+        if (!feature?.geometry) return;
+        feature.geometry = {
+          ...feature.geometry,
+          coordinates: translateCoordinates(feature.geometry.coordinates, dLng, dLat),
+        };
+        const center = feature.geometry.type === "Polygon" ? polygonCenter(feature) : null;
+        if (center && ["signal", "signal_object"].includes(feature.properties?.feature_type)) {
+          feature.properties.lon = center[0];
+          feature.properties.lat = center[1];
+        }
+      }
+
+      function cloneData(value) {
+        if (typeof structuredClone === "function") return structuredClone(value);
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function selectedFeatureKey(feature = selectedFeature) {
+        const props = feature?.properties || {};
+        if (props.feature_type === "lane") return { type: "lane", key: laneKeyFromProperties(props) };
+        if (props.feature_type === "signal") return { type: "signal", key: String(props.signal_key || feature.id) };
+        if (props.feature_type === "signal_object") return { type: "signal_object", key: String(props.object_key || feature.id) };
+        if (props.feature_type === "road") return { type: "road", key: String(props.road_id || feature.id) };
+        return null;
+      }
+
+      function findFeatureByUndoKey(ref) {
+        if (!ref) return null;
+        if (ref.type === "lane") return findLaneFeatureByKey(ref.key);
+        if (ref.type === "signal") return findSignalFeatureByKey(ref.key);
+        if (ref.type === "signal_object") return findSignalObjectFeatureByKey(ref.key);
+        if (ref.type === "road") return findRoadFeatureById(ref.key);
+        return null;
+      }
+
+      function snapshotEditableState() {
+        return {
+          lanes: cloneData(currentLaneGeoJson),
+          signals: cloneData(currentSignalGeoJson),
+          selected: selectedFeatureKey(),
+        };
+      }
+
+      function restoreEditableState(snapshot) {
+        if (!snapshot) return;
+        currentLaneGeoJson = cloneData(snapshot.lanes || emptyFeatureCollection());
+        currentSignalGeoJson = cloneData(snapshot.signals || emptyFeatureCollection());
+        selectedFeature = findFeatureByUndoKey(snapshot.selected);
+        updateSpotlightSummary(selectedFeature);
+        renderAttributeEditor(selectedFeature);
+        refreshFeatureSources();
+      }
+
+      function undoLastMovement() {
+        const snapshot = undoStack.pop();
+        if (!snapshot) {
+          setStatus("No movement to undo.", true);
+          return;
+        }
+        restoreEditableState(snapshot);
+        setStatus("Undid last movement. Save to write the restored position to OpenDRIVE.");
+      }
+
+      function metersBetween(a, b) {
+        if (!a || !b) return Number.POSITIVE_INFINITY;
+        const lat = ((Number(a[1]) || 0) + (Number(b[1]) || 0)) * 0.5;
+        const dx = (Number(a[0]) - Number(b[0])) * 111320 * Math.cos((lat * Math.PI) / 180);
+        const dy = (Number(a[1]) - Number(b[1])) * 110540;
+        return Math.hypot(dx, dy);
+      }
+
+      function laneEndpoints(feature) {
+        const ring = feature?.geometry?.coordinates?.[0] || [];
+        const points = ring.length > 1 ? ring.slice(0, -1) : ring;
+        if (points.length < 4) return null;
+        const half = Math.floor(points.length / 2);
+        const midpoint = (a, b) => [(Number(a[0]) + Number(b[0])) * 0.5, (Number(a[1]) + Number(b[1])) * 0.5];
+        return {
+          start: midpoint(points[0], points[points.length - 1]),
+          end: midpoint(points[Math.max(0, half - 1)], points[Math.min(points.length - 1, half)]),
+        };
+      }
+
+      function laneLinkPayload(feature) {
+        return {
+          id: Number(feature.properties?.lane_id || 0),
+          key: laneKeyFromProperties(feature.properties),
+        };
+      }
+
+      function setLaneConnection(fromFeature, toFeature) {
+        const from = laneLinkPayload(fromFeature);
+        const to = laneLinkPayload(toFeature);
+        if (!from.id || !to.id || from.key === to.key) return;
+        fromFeature.properties.successor = to.id;
+        fromFeature.properties.successor_keys = [to.key];
+        toFeature.properties.predecessor = from.id;
+        toFeature.properties.predecessor_keys = [from.key];
+      }
+
+      function autoConnectDraggedLane(feature, thresholdMeters = 2.5) {
+        if (feature?.properties?.feature_type !== "lane") return false;
+        const draggedEnds = laneEndpoints(feature);
+        if (!draggedEnds) return false;
+        let best = null;
+        for (const candidate of currentLaneGeoJson.features) {
+          if (candidate === feature || candidate.properties?.feature_type !== "lane") continue;
+          if (String(candidate.properties?.road_id) !== String(feature.properties?.road_id)) continue;
+          const candidateEnds = laneEndpoints(candidate);
+          if (!candidateEnds) continue;
+          const checks = [
+            { distance: metersBetween(draggedEnds.start, candidateEnds.end), kind: "candidate_to_dragged", candidate },
+            { distance: metersBetween(draggedEnds.end, candidateEnds.start), kind: "dragged_to_candidate", candidate },
+          ];
+          for (const check of checks) {
+            if (!best || check.distance < best.distance) best = check;
+          }
+        }
+        if (!best || best.distance > thresholdMeters) return false;
+        if (best.kind === "candidate_to_dragged") {
+          setLaneConnection(best.candidate, feature);
+        } else {
+          setLaneConnection(feature, best.candidate);
+        }
+        setStatus(`Connected lanes within ${best.distance.toFixed(2)} m. Save to write predecessor/successor links.`);
+        return true;
+      }
+
+      function updateSignalDerivedMapProperties(feature) {
+        if (!["signal", "signal_object"].includes(feature.properties?.feature_type)) return;
+        const props = feature.properties;
+        const base = Math.max(0, Number(props.zOffset ?? props.z ?? 0) || 0);
+        const height = Math.max(1, Number(props.height) || 1);
+        props.extrusion_base = base;
+        props.extrusion_height = base + height;
+
+        const center = polygonCenter(feature);
+        if (center && props.feature_type === "signal") {
+          feature.geometry.coordinates = [meterBox(center[0], center[1], Math.max(Number(props.width) || 0.6, 0.6))];
+        } else if (center && props.feature_type === "signal_object") {
+          const length = Math.max(Number(props.length) || Number(props.radius) * 2 || 0.4, 0.4);
+          const width = Math.max(Number(props.width) || Number(props.radius) * 2 || 0.4, 0.4);
+          feature.geometry.coordinates = [localRect(center[0], center[1], Number(props.map_heading) || 0, length, width)];
+        }
+      }
+
+      function replaceArrayValue(value, oldValue, newValue) {
+        const items = propertyList(value);
+        return items.map((item) => String(item) === String(oldValue) ? newValue : item);
+      }
+
+      function refreshLaneIdentity(feature, oldProps = {}) {
+        if (feature.properties?.feature_type !== "lane") return;
+        const props = feature.properties;
+        const oldKey = oldProps.lane_key || laneKeyFromProperties(oldProps);
+        const newKey = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
+        const oldLaneId = oldProps.lane_id;
+        props.lane_key = newKey;
+        feature.id = newKey;
+
+        for (const lane of currentLaneGeoJson.features) {
+          const laneProps = lane.properties || {};
+          if (oldKey && laneProps.predecessor_keys !== undefined) {
+            laneProps.predecessor_keys = replaceArrayValue(laneProps.predecessor_keys, oldKey, newKey);
+          }
+          if (oldKey && laneProps.successor_keys !== undefined) {
+            laneProps.successor_keys = replaceArrayValue(laneProps.successor_keys, oldKey, newKey);
+          }
+          if (
+            oldLaneId !== undefined &&
+            String(laneProps.road_id) === String(props.road_id) &&
+            String(laneProps.predecessor) === String(oldLaneId)
+          ) {
+            laneProps.predecessor = props.lane_id;
+          }
+          if (
+            oldLaneId !== undefined &&
+            String(laneProps.road_id) === String(props.road_id) &&
+            String(laneProps.successor) === String(oldLaneId)
+          ) {
+            laneProps.successor = props.lane_id;
+          }
+        }
+      }
+
+      function cascadeRoadIdentity(feature, oldProps = {}) {
+        if (feature.properties?.feature_type !== "road") return;
+        const props = feature.properties;
+        const oldRoadId = oldProps.road_id || oldProps.id || feature.id;
+        const newRoadId = props.road_id || feature.id;
+        feature.id = newRoadId;
+        props.road_id = newRoadId;
+
+        for (const lane of currentLaneGeoJson.features) {
+          if (String(lane.properties?.road_id) !== String(oldRoadId)) continue;
+          lane.properties.road_id = newRoadId;
+          if (props.name !== undefined) lane.properties.road_name = props.name;
+          if (props.junction !== undefined) lane.properties.junction = props.junction;
+          refreshLaneIdentity(lane, { ...lane.properties, road_id: oldRoadId });
+        }
+        for (const signal of currentSignalGeoJson.features) {
+          const signalProps = signal.properties || {};
+          if (String(signalProps.road_id) !== String(oldRoadId)) continue;
+          signalProps.road_id = newRoadId;
+          if (props.name !== undefined) signalProps.road_name = props.name;
+          if (signalProps.feature_type === "signal") {
+            signalProps.signal_key = `${newRoadId}/${signalProps.signal_id}`;
+            signal.id = signalProps.signal_key;
+          } else if (signalProps.feature_type === "signal_object") {
+            signalProps.object_key = `${newRoadId}/${signalProps.object_id}`;
+            signal.id = signalProps.object_key;
+          }
+        }
+      }
+
+      function cascadeSignalIdentity(feature) {
+        const props = feature.properties || {};
+        if (props.feature_type === "signal") {
+          props.signal_key = `${props.road_id}/${props.signal_id}`;
+          feature.id = props.signal_key;
+        } else if (props.feature_type === "signal_object") {
+          props.object_key = `${props.road_id}/${props.object_id}`;
+          feature.id = props.object_key;
+        }
+      }
+
+      function applyAttributeEdit(feature, key, nextValue, oldProps) {
+        feature.properties[key] = nextValue;
+        if (feature.properties.feature_type === "road") {
+          cascadeRoadIdentity(feature, oldProps);
+        } else if (feature.properties.feature_type === "lane") {
+          refreshLaneIdentity(feature, oldProps);
+        } else if (["signal", "signal_object"].includes(feature.properties.feature_type)) {
+          cascadeSignalIdentity(feature);
+          updateSignalDerivedMapProperties(feature);
+        }
+      }
+
+      function shiftedPolygon(feature, dx = 0.000015, dy = 0.000015) {
+        if (feature.geometry?.type !== "Polygon") return feature.geometry;
+        return {
+          type: "Polygon",
+          coordinates: feature.geometry.coordinates.map((ring) => {
+            return ring.map((coord) => [Number(coord[0]) + dx, Number(coord[1]) + dy]);
+          }),
+        };
+      }
+
+      function nextLaneId(props) {
+        const sign = Number(props.lane_id) < 0 ? -1 : 1;
+        const section = Number(props.lanesection_s0 || 0);
+        const ids = currentLaneGeoJson.features
+          .map((feature) => feature.properties || {})
+          .filter((item) => {
+            return (
+              String(item.road_id) === String(props.road_id) &&
+              Math.abs(Number(item.lanesection_s0 || 0) - section) < 1e-6 &&
+              Math.sign(Number(item.lane_id || 0)) === sign
+            );
+          })
+          .map((item) => Math.abs(Number(item.lane_id || 0)));
+        return sign * (Math.max(0, ...ids) + 1);
+      }
+
+      function addLaneFromSelection() {
+        const base = selectedFeature?.properties?.feature_type === "lane" ? selectedFeature : null;
+        if (!base) {
+          setStatus("Select a lane before adding a lane.", true);
+          return;
+        }
+        const props = { ...base.properties };
+        props.lane_id = nextLaneId(props);
+        props.lane_key = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
+        props.predecessor = 0;
+        props.successor = 0;
+        props.predecessor_keys = [];
+        props.successor_keys = [];
+        props.source = "maplibre-gl-geo-editor";
+        const feature = {
+          ...base,
+          id: props.lane_key,
+          properties: props,
+          geometry: shiftedPolygon(base),
+        };
+        currentLaneGeoJson.features.push(feature);
+        setSpotlightFeature(feature);
+        refreshFeatureSources();
+        setStatus(`Added lane ${props.lane_id} on road ${props.road_id}. Save to write it to OpenDRIVE.`);
+      }
+
+      function removeFeatureFromCollection(collection, predicate) {
+        const before = collection.features.length;
+        collection.features = collection.features.filter((feature) => !predicate(feature));
+        return collection.features.length !== before;
+      }
+
+      function deleteSelectedFeature() {
+        const feature = selectedFeature;
+        const props = feature?.properties || {};
+        let removed = false;
+        if (props.feature_type === "lane") {
+          const key = laneKeyFromProperties(props);
+          removed = removeFeatureFromCollection(currentLaneGeoJson, (item) => laneKeyFromProperties(item.properties) === key);
+        } else if (props.feature_type === "signal") {
+          const key = props.signal_key || feature.id;
+          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.signal_key || item.id) === String(key));
+        } else if (props.feature_type === "signal_object") {
+          const key = props.object_key || feature.id;
+          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.object_key || item.id) === String(key));
+        }
+        if (!removed) {
+          setStatus("Select a lane, signal, post, or mast arm before deleting.", true);
+          return;
+        }
+        setSpotlightFeature(null);
+        refreshFeatureSources();
+        setStatus("Deleted selected feature. Save to write the deletion to OpenDRIVE.");
+      }
+
+      function copySelectedLaneLink() {
+        if (selectedFeature?.properties?.feature_type !== "lane") {
+          setStatus("Select a lane to copy its lane link.", true);
+          return;
+        }
+        copiedLaneLink = {
+          lane_id: Number(selectedFeature.properties.lane_id),
+          lane_key: laneKeyFromProperties(selectedFeature.properties),
+        };
+        setStatus(`Copied lane ${copiedLaneLink.lane_id}. Select another lane and set predecessor or successor.`);
+      }
+
+      function setSelectedLaneLink(kind) {
+        if (!copiedLaneLink || selectedFeature?.properties?.feature_type !== "lane") {
+          setStatus("Copy one lane, then select another lane to set predecessor or successor.", true);
+          return;
+        }
+        selectedFeature.properties[kind] = copiedLaneLink.lane_id;
+        selectedFeature.properties[`${kind}_keys`] = [copiedLaneLink.lane_key];
+        updateSpotlightSummary(selectedFeature);
+        renderAttributeEditor(selectedFeature);
+        refreshFeatureSources();
+        setStatus(`Set ${kind} of lane ${selectedFeature.properties.lane_id} to ${copiedLaneLink.lane_id}.`);
+      }
+
+      function draggableFeatureFromEvent(event) {
+        const feature = resolveSourceFeature(event.features?.[0]);
+        if (!feature || feature.geometry?.type !== "Polygon") return null;
+        if (!["lane", "signal", "signal_object"].includes(feature.properties?.feature_type)) return null;
+        return feature;
+      }
+
+      function startFeatureDrag(event) {
+        const feature = draggableFeatureFromEvent(event);
+        if (!feature) return;
+        event.preventDefault();
+        map.dragPan.disable();
+        map.getCanvas().style.cursor = "grabbing";
+        dragState = {
+          feature,
+          before: snapshotEditableState(),
+          moved: false,
+          lastLngLat: event.lngLat,
+        };
+      }
+
+      function moveFeatureDrag(event) {
+        if (!dragState) return;
+        const dLng = event.lngLat.lng - dragState.lastLngLat.lng;
+        const dLat = event.lngLat.lat - dragState.lastLngLat.lat;
+        if (Math.abs(dLng) > 0 || Math.abs(dLat) > 0) dragState.moved = true;
+        translateFeature(dragState.feature, dLng, dLat);
+        dragState.lastLngLat = event.lngLat;
+        refreshFeatureSources();
+      }
+
+      function endFeatureDrag() {
+        if (!dragState) return;
+        const feature = dragState.feature;
+        const before = dragState.before;
+        const moved = dragState.moved;
+        dragState = null;
+        map.dragPan.enable();
+        map.getCanvas().style.cursor = "";
+        if (moved) {
+          undoStack.push(before);
+          if (undoStack.length > 50) undoStack.shift();
+        }
+        const connected = autoConnectDraggedLane(feature);
+        updateSignalDerivedMapProperties(feature);
+        if (selectedFeature === feature) {
+          updateSpotlightSummary(feature);
+          renderAttributeEditor(feature);
+        }
+        refreshFeatureSources();
+        if (!connected && feature.properties?.feature_type === "lane") {
+          setStatus("Moved lane. No nearby lane endpoint was close enough to auto-connect.");
+        } else if (feature.properties?.feature_type !== "lane") {
+          setStatus("Moved object. Save to write its updated position to OpenDRIVE.");
+        }
+      }
+
+      function selectedPlacement() {
+        const feature = selectedFeature;
+        const props = feature?.properties || {};
+        if (!feature) return null;
+        const center = feature.geometry?.type === "Polygon" ? polygonCenter(feature) : null;
+        const lineCoords = feature.geometry?.type === "LineString" ? feature.geometry.coordinates : null;
+        const coord = center || (lineCoords && lineCoords[Math.floor(lineCoords.length / 2)]);
+        if (!coord) return null;
+        return {
+          lon: coord[0],
+          lat: coord[1],
+          road_id: props.road_id || props.id || props.road_id,
+          s: Number(props.s ?? props.lanesection_s0 ?? 0),
+          t: Number(props.t ?? 0),
+        };
+      }
+
+      function addSignalDetail(kind) {
+        const placement = selectedPlacement();
+        if (!placement?.road_id) {
+          setStatus("Select a lane, road, signal, post, or mast arm before adding signal detail.", true);
+          return;
+        }
+        const id = `new_${kind}_${Date.now()}`;
+        if (kind === "signal") {
+          const props = {
+            feature_type: "signal",
+            signal_key: `${placement.road_id}/${id}`,
+            signal_id: id,
+            road_id: placement.road_id,
+            name: "User_Signal_Head",
+            s: placement.s,
+            t: placement.t,
+            zOffset: 2.5,
+            value: -1,
+            height: 1,
+            width: 0.6,
+            hOffset: 0,
+            pitch: 0,
+            roll: 0,
+            orientation: "+",
+            country: "OpenDRIVE",
+            type: "1000001",
+            subtype: "-1",
+            unit: "",
+            text: "",
+            dynamic: true,
+            source: "maplibre-gl-geo-editor",
+          };
+          props.extrusion_base = props.zOffset;
+          props.extrusion_height = props.zOffset + props.height;
+          const feature = {
+            type: "Feature",
+            id: props.signal_key,
+            properties: props,
+            geometry: { type: "Polygon", coordinates: [meterBox(placement.lon, placement.lat, props.width)] },
+          };
+          currentSignalGeoJson.features.push(feature);
+          setSpotlightFeature(feature);
+        } else {
+          const isMastArm = kind === "mastarm";
+          const props = {
+            feature_type: "signal_object",
+            object_role: isMastArm ? "mastarm" : "post",
+            object_key: `${placement.road_id}/${id}`,
+            object_id: id,
+            road_id: placement.road_id,
+            name: isMastArm ? "Signal_MastArm_15ft" : "Signal_Post_30ft",
+            s: placement.s,
+            t: placement.t,
+            zOffset: isMastArm ? 8.6 : 0,
+            length: isMastArm ? 0.25 : 0.55,
+            width: isMastArm ? 4.7 : 0.55,
+            radius: 0,
+            height: isMastArm ? 1.3 : 9.7,
+            hdg: 0,
+            map_heading: 0,
+            pitch: 0,
+            roll: 0,
+            orientation: "+",
+            type: "-1",
+            subtype: "",
+            dynamic: false,
+            source: "maplibre-gl-geo-editor",
+          };
+          props.extrusion_base = props.zOffset;
+          props.extrusion_height = props.zOffset + props.height;
+          const feature = {
+            type: "Feature",
+            id: props.object_key,
+            properties: props,
+            geometry: { type: "Polygon", coordinates: [localRect(placement.lon, placement.lat, 0, props.length, props.width)] },
+          };
+          currentSignalGeoJson.features.push(feature);
+          setSpotlightFeature(feature);
+        }
+        refreshFeatureSources();
+        setStatus(`Added ${kind}. Save to write it to OpenDRIVE.`);
+      }
+
+      function refreshFeatureSources() {
+        if (map.getSource("opendrive-lanes")) {
+          map.getSource("opendrive-lanes").setData(currentLaneGeoJson);
+        }
+        if (map.getSource("opendrive-signals")) {
+          map.getSource("opendrive-signals").setData(currentSignalGeoJson);
+        }
+        if (map.getSource("opendrive-roads")) {
+          map.getSource("opendrive-roads").setData(currentGeoJson);
+        }
+        if (selectedFeature) {
+          setLaneNetworkHighlight(selectedFeature);
+          const source = map.getSource("opendrive-spotlight");
+          if (source) {
+            source.setData({
+              type: "FeatureCollection",
+              features: [selectedFeature],
+            });
+          }
+        }
+      }
+
+      function renderAttributeEditor(feature) {
+        attributeFields.replaceChildren();
+        if (!feature || !feature.properties) {
+          const empty = document.createElement("span");
+          empty.textContent = "No selected data";
+          empty.style.color = "#667085";
+          attributeFields.appendChild(empty);
+          return;
+        }
+
+        for (const key of Object.keys(feature.properties).sort()) {
+          const value = feature.properties[key];
+          const row = document.createElement("div");
+          row.className = "attribute-row";
+          const label = document.createElement("label");
+          label.textContent = key;
+          label.htmlFor = `attr_${key}`;
+
+          let field = null;
+          if (typeof value === "boolean") {
+            field = document.createElement("input");
+            field.type = "checkbox";
+            field.checked = value;
+          } else if (typeof value === "number") {
+            field = document.createElement("input");
+            field.type = "number";
+            field.step = "any";
+            field.value = String(value);
+          } else if (Array.isArray(value) || (value && typeof value === "object")) {
+            field = document.createElement("textarea");
+            field.value = attributeValueToText(value);
+          } else {
+            field = document.createElement("input");
+            field.type = "text";
+            field.value = attributeValueToText(value);
+          }
+
+          field.id = `attr_${key}`;
+          field.dataset.attribute = key;
+          field.addEventListener("change", () => {
+            const current = feature.properties[key];
+            const oldProps = { ...feature.properties };
+            const scrollTop = attributeFields.scrollTop;
+            applyAttributeEdit(feature, key, parseAttributeValue(current, field), oldProps);
+            selectedFeature = resolveSourceFeature(feature);
+            updateSpotlightSummary(selectedFeature);
+            renderAttributeEditor(selectedFeature);
+            attributeFields.scrollTop = scrollTop;
+            refreshFeatureSources();
+          });
+          row.appendChild(label);
+          row.appendChild(field);
+          attributeFields.appendChild(row);
+        }
+      }
+
+      function updateSpotlightSummary(feature) {
+      }
+
+      function setLaneNetworkHighlight(feature) {
+        const selectedSource = map.getSource("opendrive-lane-selected");
+        const adjacentSource = map.getSource("opendrive-lane-adjacent");
+        if (!feature || feature.geometry?.type !== "Polygon" || feature.properties?.feature_type !== "lane") {
+          if (selectedSource) selectedSource.setData(emptyFeatureCollection());
+          if (adjacentSource) adjacentSource.setData(emptyFeatureCollection());
+          return;
+        }
+        if (selectedSource) {
+          selectedSource.setData({
+            type: "FeatureCollection",
+            features: [feature],
+          });
+        }
+        if (adjacentSource) {
+          adjacentSource.setData({
+            type: "FeatureCollection",
+            features: adjacentLaneFeatures(feature),
+          });
+        }
+      }
+
+      function setSpotlightFeature(feature) {
+        feature = resolveSourceFeature(feature);
+        selectedFeature = feature;
+        const source = map.getSource("opendrive-spotlight");
+        if (!feature || !["LineString", "Polygon"].includes(feature.geometry?.type)) {
+          if (source) source.setData(emptyFeatureCollection());
+          updateSpotlightSummary(null);
+          renderAttributeEditor(null);
+          setLaneNetworkHighlight(null);
+          return;
+        }
+
+        updateSpotlightSummary(feature);
+        renderAttributeEditor(feature);
+        if (source) {
+          source.setData({
+            type: "FeatureCollection",
+            features: [feature],
+          });
+        }
+        setLaneNetworkHighlight(feature);
+      }
+
+      function registerSpotlightEvents() {
+        if (spotlightEventsRegistered) return;
+        spotlightEventsRegistered = true;
+        map.on("mousemove", moveFeatureDrag);
+        map.on("mouseup", endFeatureDrag);
+        map.on("mouseleave", endFeatureDrag);
+        map.on("mousemove", "opendrive-lanes", (event) => {
+          if (dragState) return;
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "opendrive-lanes", () => {
+          if (dragState) return;
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("mousedown", "opendrive-lanes", startFeatureDrag);
+        map.on("click", "opendrive-lanes", (event) => {
+          event.preventDefault();
+          if (dragState) return;
+          setSpotlightFeature(event.features?.[0]);
+        });
+        map.on("mousemove", "opendrive-roads", (event) => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "opendrive-roads", () => {
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("click", "opendrive-roads", (event) => {
+          event.preventDefault();
+          setSpotlightFeature(event.features?.[0]);
+        });
+        map.on("mousemove", "opendrive-signals", (event) => {
+          if (dragState) return;
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", "opendrive-signals", () => {
+          if (dragState) return;
+          map.getCanvas().style.cursor = "";
+        });
+        map.on("mousedown", "opendrive-signals", startFeatureDrag);
+        map.on("click", "opendrive-signals", (event) => {
+          event.preventDefault();
+          if (dragState) return;
+          setSpotlightFeature(event.features?.[0]);
+        });
+      }
+
+      function registerLaneSelectionEvents() {
+        if (laneSelectionEventsRegistered) return;
+        laneSelectionEventsRegistered = true;
+      }
+
+      function setLaneSource(geojson) {
+        currentLaneGeoJson = geojson || emptyFeatureCollection();
+        if (map.getSource("opendrive-lanes")) {
+          map.getSource("opendrive-lanes").setData(currentLaneGeoJson);
+          return;
+        }
+
+        map.addSource("opendrive-lanes", {
+          type: "geojson",
+          data: currentLaneGeoJson,
+        });
+        map.addLayer({
+          id: "opendrive-lanes",
+          type: "fill",
+          source: "opendrive-lanes",
+          paint: {
+            "fill-color": [
+              "case",
+              ["==", ["get", "lane_type"], "driving"], "#2e90fa",
+              ["==", ["get", "lane_type"], "sidewalk"], "#12b76a",
+              ["==", ["get", "lane_type"], "biking"], "#f79009",
+              "#667085",
+            ],
+            "fill-opacity": [
+              "case",
+              ["boolean", ["get", "level"], false], 0.46,
+              0.34,
+            ],
+          },
+        });
+        map.addLayer({
+          id: "opendrive-lane-borders",
+          type: "line",
+          source: "opendrive-lanes",
+          paint: {
+            "line-color": "#111827",
+            "line-width": 1.2,
+            "line-opacity": 0.72,
+          },
+        });
+        map.addSource("opendrive-lane-adjacent", {
+          type: "geojson",
+          data: emptyFeatureCollection(),
+        });
+        map.addLayer({
+          id: "opendrive-lane-adjacent",
+          type: "fill",
+          source: "opendrive-lane-adjacent",
+          paint: {
+            "fill-color": [
+              "case",
+              ["==", ["get", "relation"], "predecessor"], "#7a5af8",
+              ["==", ["get", "relation"], "successor"], "#f79009",
+              "#f79009",
+            ],
+            "fill-opacity": 0.62,
+          },
+        });
+        map.addLayer({
+          id: "opendrive-lane-adjacent-outline",
+          type: "line",
+          source: "opendrive-lane-adjacent",
+          paint: {
+            "line-color": [
+              "case",
+              ["==", ["get", "relation"], "predecessor"], "#5925dc",
+              ["==", ["get", "relation"], "successor"], "#b54708",
+              "#b54708",
+            ],
+            "line-width": 3,
+          },
+        });
+        map.addSource("opendrive-lane-selected", {
+          type: "geojson",
+          data: emptyFeatureCollection(),
+        });
+        map.addLayer({
+          id: "opendrive-lane-selected",
+          type: "fill",
+          source: "opendrive-lane-selected",
+          paint: {
+            "fill-color": "#f04438",
+            "fill-opacity": 0.68,
+          },
+        });
+        map.addLayer({
+          id: "opendrive-lane-selected-outline",
+          type: "line",
+          source: "opendrive-lane-selected",
+          paint: {
+            "line-color": "#b42318",
+            "line-width": 4,
+          },
+        });
+        registerLaneSelectionEvents();
+      }
+
+      function setSignalSource(geojson) {
+        currentSignalGeoJson = geojson || emptyFeatureCollection();
+        if (map.getSource("opendrive-signals")) {
+          map.getSource("opendrive-signals").setData(currentSignalGeoJson);
+          return;
+        }
+
+        map.addSource("opendrive-signals", {
+          type: "geojson",
+          data: currentSignalGeoJson,
+        });
+        map.addLayer({
+          id: "opendrive-signals",
+          type: "fill-extrusion",
+          source: "opendrive-signals",
+          paint: {
+            "fill-extrusion-color": [
+              "case",
+              ["==", ["get", "object_role"], "mastarm"], "#475467",
+              ["==", ["get", "object_role"], "post"], "#344054",
+              ["==", ["get", "dynamic"], true], "#d92d20",
+              "#fdb022",
+            ],
+            "fill-extrusion-height": ["coalesce", ["get", "extrusion_height"], 2],
+            "fill-extrusion-base": ["coalesce", ["get", "extrusion_base"], 0],
+            "fill-extrusion-opacity": 0.86,
+          },
+        });
+        map.addLayer({
+          id: "opendrive-signal-labels",
+          type: "symbol",
+          source: "opendrive-signals",
+          layout: {
+            "text-field": [
+              "coalesce",
+              ["get", "text"],
+              ["get", "name"],
+              ["to-string", ["get", "object_id"]],
+              ["to-string", ["get", "signal_id"]],
+            ],
+            "text-size": 11,
+            "text-offset": [0, 1.2],
+            "text-anchor": "top",
+            "text-allow-overlap": false,
+          },
+          paint: {
+            "text-color": "#111827",
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1.25,
+          },
+        });
       }
 
       function setRoadSource(geojson) {
@@ -195,6 +1794,9 @@
             id: "opendrive-road-casing",
             type: "line",
             source: "opendrive-roads",
+            layout: {
+              visibility: "none",
+            },
             paint: {
               "line-color": "#243447",
               "line-width": 7,
@@ -205,11 +1807,38 @@
             id: "opendrive-roads",
             type: "line",
             source: "opendrive-roads",
+            layout: {
+              visibility: "none",
+            },
             paint: {
               "line-color": "#f2b705",
               "line-width": 3,
             },
           });
+          map.addSource("opendrive-spotlight", {
+            type: "geojson",
+            data: emptyFeatureCollection(),
+          });
+          map.addLayer({
+            id: "opendrive-spotlight-glow",
+            type: "line",
+            source: "opendrive-spotlight",
+            paint: {
+              "line-color": "#f04438",
+              "line-width": 12,
+              "line-opacity": 0.28,
+            },
+          });
+          map.addLayer({
+            id: "opendrive-spotlight",
+            type: "line",
+            source: "opendrive-spotlight",
+            paint: {
+              "line-color": "#f04438",
+              "line-width": 5,
+            },
+          });
+          registerSpotlightEvents();
         }
       }
 
@@ -217,6 +1846,27 @@
         if (!geoEditor) return;
         geoEditor.loadGeoJson(geojson);
         setRoadSource(geojson);
+      }
+
+      function loadPayload(payload) {
+        currentFilename = payload.filename || "network.xodr";
+        restoreRequestId += 1;
+        selectedFeature = null;
+        undoStack = [];
+        renderAttributeEditor(null);
+        updateSpotlightSummary(null);
+        setLaneNetworkHighlight(null);
+        setLaneSource(payload.lane_geojson || emptyFeatureCollection());
+        setSignalSource(payload.signal_geojson || emptyFeatureCollection());
+        loadIntoEditor(payload.geojson || emptyFeatureCollection());
+        setGridMeshSource();
+        fitToGeoJson(
+          (payload.lane_geojson && payload.lane_geojson.features.length > 0)
+            ? payload.lane_geojson
+            : ((payload.signal_geojson && payload.signal_geojson.features.length > 0)
+              ? payload.signal_geojson
+              : payload.geojson)
+        );
       }
 
       function editorFeatureCollection() {
@@ -229,11 +1879,9 @@
       async function loadNetwork() {
         setStatus("Loading OpenDRIVE network...");
         const payload = await requestJson("/api/network");
-        currentFilename = payload.filename || "network.xodr";
-        loadIntoEditor(payload.geojson);
-        fitToGeoJson(payload.geojson);
+        loadPayload(payload);
         setStatus(
-          `Loaded ${currentFilename}: ${payload.geojson.features.length} editable roads from pyopendrive.`
+          `Loaded ${currentFilename}: ${payload.lane_geojson.features.length} lanes, ${(payload.signal_geojson?.features.length || 0)} signals, and ${payload.geojson.features.length} editable roads from pyopendrive.`
         );
       }
 
@@ -245,11 +1893,9 @@
           method: "POST",
           body: JSON.stringify({ filename: file.name, xodr: text }),
         });
-        currentFilename = payload.filename || file.name;
-        loadIntoEditor(payload.geojson);
-        fitToGeoJson(payload.geojson);
+        loadPayload(payload);
         setStatus(
-          `Loaded ${currentFilename}: ${payload.geojson.features.length} editable roads geocoded with convertXY2LonLat.`
+          `Loaded ${currentFilename}: ${payload.lane_geojson.features.length} lane polygons and ${(payload.signal_geojson?.features.length || 0)} signals geocoded with convertXY2LonLat.`
         );
       }
 
@@ -258,22 +1904,115 @@
         const geojson = editorFeatureCollection();
         const payload = await requestJson("/api/save-xodr", {
           method: "POST",
-          body: JSON.stringify({ geojson }),
+          body: JSON.stringify({
+            geojson,
+            lane_geojson: currentLaneGeoJson,
+            signal_geojson: currentSignalGeoJson,
+          }),
         });
         currentFilename = payload.saved_filename || `edited_${currentFilename}`;
-        loadIntoEditor(payload.geojson);
+        loadPayload(payload);
         downloadText(currentFilename, payload.xodr);
-        setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads.`);
+        setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads and refreshed ${payload.lane_geojson.features.length} lanes plus ${(payload.signal_geojson?.features.length || 0)} signals.`);
       }
+
+      window.OpenDriveViewer = {
+        map,
+        get editor() {
+          return geoEditor;
+        },
+        get filename() {
+          return currentFilename;
+        },
+        getGeoJson: editorFeatureCollection,
+        getLaneGeoJson: () => currentLaneGeoJson,
+        getSignalGeoJson: () => currentSignalGeoJson,
+        loadNetwork,
+        openXodrFile,
+        saveEditedXodr,
+        fit: () => fitToGeoJson(editorFeatureCollection()),
+        spotlightRoad: (roadId) => {
+          const feature = currentLaneGeoJson.features.find((item) => {
+            return String(item.properties?.road_id || item.id) === String(roadId);
+          }) || editorFeatureCollection().features.find((item) => {
+            return String(item.properties?.road_id || item.id) === String(roadId);
+          });
+          setSpotlightFeature(feature);
+          if (feature) {
+            fitToGeoJson({
+              type: "FeatureCollection",
+              features: [feature],
+            });
+          }
+        },
+        spotlightLane: (roadId, laneId) => {
+          const feature = currentLaneGeoJson.features.find((item) => {
+            return (
+              String(item.properties?.road_id) === String(roadId) &&
+              String(item.properties?.lane_id) === String(laneId)
+            );
+          });
+          setSpotlightFeature(feature);
+          if (feature) {
+            fitToGeoJson({
+              type: "FeatureCollection",
+              features: [feature],
+            });
+          }
+        },
+        highlightLaneNetwork: (roadId, laneId) => {
+          window.OpenDriveViewer.spotlightLane(roadId, laneId);
+        },
+        spotlightSignal: (roadId, signalId) => {
+          const feature = currentSignalGeoJson.features.find((item) => {
+            return (
+              String(item.properties?.road_id) === String(roadId) &&
+              String(item.properties?.signal_id) === String(signalId)
+            );
+          });
+          setSpotlightFeature(feature);
+          if (feature) {
+            fitToGeoJson({
+              type: "FeatureCollection",
+              features: [feature],
+            });
+          }
+        },
+        spotlightSignalObject: (roadId, objectId) => {
+          const feature = currentSignalGeoJson.features.find((item) => {
+            return (
+              String(item.properties?.road_id) === String(roadId) &&
+              String(item.properties?.object_id) === String(objectId)
+            );
+          });
+          setSpotlightFeature(feature);
+          if (feature) {
+            fitToGeoJson({
+              type: "FeatureCollection",
+              features: [feature],
+            });
+          }
+        },
+        clearSpotlight: () => setSpotlightFeature(null),
+      };
 
       map.on("load", () => {
         const geoman = new Geoman(map, {});
+        map.on("style.load", () => {
+          if (
+            currentLaneGeoJson.features.length > 0 ||
+            currentSignalGeoJson.features.length > 0 ||
+            currentGeoJson.features.length > 0
+          ) {
+            restoreOverlayLayersAfterStyleChange();
+          }
+        });
         map.on("gm:loaded", () => {
           geoEditor = new GeoEditor({
             position: "top-right",
             toolbarOrientation: "vertical",
             columns: 2,
-            drawModes: ["line"],
+            drawModes: ["line", "polygon"],
             editModes: ["select", "drag", "change", "delete", "copy", "split", "simplify", "lasso"],
             fileModes: [],
             fitBoundsOnLoad: true,
@@ -287,8 +2026,43 @@
                 { name: "name", label: "Name", type: "string" },
                 { name: "junction", label: "Junction", type: "string" },
               ],
+              polygon: [
+                { name: "road_id", label: "Road ID", type: "string", required: true },
+                { name: "lane_id", label: "Lane ID", type: "number", required: true },
+                { name: "lane_type", label: "Lane Type", type: "string" },
+              ],
             },
             onFeatureCreate: (feature) => {
+              if (feature.geometry?.type === "Polygon") {
+                const selectedProps = selectedFeature?.properties || {};
+                const roadId = feature.properties?.road_id || selectedProps.road_id;
+                if (!roadId) {
+                  setStatus("Select a road or lane before drawing a lane polygon.", true);
+                  return;
+                }
+                const baseProps = selectedProps.feature_type === "lane" ? selectedProps : {};
+                const props = {
+                  ...baseProps,
+                  ...(feature.properties || {}),
+                  feature_type: "lane",
+                  road_id: roadId,
+                  lanesection_s0: Number(baseProps.lanesection_s0 || 0),
+                  lane_id: feature.properties?.lane_id || nextLaneId({ ...baseProps, road_id: roadId, lane_id: baseProps.lane_id || -1 }),
+                  lane_type: feature.properties?.lane_type || baseProps.lane_type || "driving",
+                  level: feature.properties?.level ?? baseProps.level ?? false,
+                  predecessor: feature.properties?.predecessor || 0,
+                  successor: feature.properties?.successor || 0,
+                  source: "maplibre-gl-geo-editor",
+                };
+                props.lane_key = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
+                feature.id = props.lane_key;
+                feature.properties = props;
+                currentLaneGeoJson.features.push(feature);
+                setSpotlightFeature(feature);
+                refreshFeatureSources();
+                setStatus(`Added drawn lane ${props.lane_id}. Save to write it to OpenDRIVE.`);
+                return;
+              }
               feature.properties = {
                 ...(feature.properties || {}),
                 feature_type: "road",
@@ -325,6 +2099,111 @@
       reloadButton.addEventListener("click", () => {
         loadNetwork().catch((error) => setStatus(error.message, true));
       });
+      addLaneButton.addEventListener("click", addLaneFromSelection);
+      deleteFeatureButton.addEventListener("click", deleteSelectedFeature);
+      copyLaneLinkButton.addEventListener("click", copySelectedLaneLink);
+      setPredecessorButton.addEventListener("click", () => setSelectedLaneLink("predecessor"));
+      setSuccessorButton.addEventListener("click", () => setSelectedLaneLink("successor"));
+      addSignalButton.addEventListener("click", () => addSignalDetail("signal"));
+      addPostButton.addEventListener("click", () => addSignalDetail("post"));
+      addMastArmButton.addEventListener("click", () => addSignalDetail("mastarm"));
+      undoMoveButton.addEventListener("click", undoLastMovement);
+      basemapSelect.addEventListener("change", () => changeBasemap(basemapSelect.value));
+      spotlightToggle.addEventListener("click", () => {
+        const collapsed = spotlight.classList.toggle("collapsed");
+        spotlightToggle.textContent = collapsed ? "+" : "-";
+        spotlightToggle.title = collapsed ? "Unfold panel" : "Fold panel";
+      });
+      spotlightHeader.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button, input, textarea, select, label")) return;
+        const rect = spotlight.getBoundingClientRect();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startLeft = rect.left;
+        const startTop = rect.top;
+        spotlightHeader.setPointerCapture(event.pointerId);
+
+        const onPointerMove = (moveEvent) => {
+          setSpotlightPosition(
+            startLeft + moveEvent.clientX - startX,
+            startTop + moveEvent.clientY - startY
+          );
+        };
+        const onPointerUp = () => {
+          spotlightHeader.removeEventListener("pointermove", onPointerMove);
+          spotlightHeader.removeEventListener("pointerup", onPointerUp);
+          spotlightHeader.removeEventListener("pointercancel", onPointerUp);
+        };
+        spotlightHeader.addEventListener("pointermove", onPointerMove);
+        spotlightHeader.addEventListener("pointerup", onPointerUp);
+        spotlightHeader.addEventListener("pointercancel", onPointerUp);
+      });
+      function startRightResize(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = spotlight.getBoundingClientRect();
+        const startX = event.clientX;
+        const startWidth = rect.width;
+        const anchoredRight = window.innerWidth - rect.right;
+        spotlightResizeHandleRight.setPointerCapture(event.pointerId);
+
+        const onPointerMove = (moveEvent) => {
+          const nextWidth = startWidth + moveEvent.clientX - startX;
+          setSpotlightWidth(nextWidth);
+          spotlight.style.right = `${anchoredRight}px`;
+          spotlight.style.left = "auto";
+          const nextRect = spotlight.getBoundingClientRect();
+          localStorage.setItem("opendriveviewer_left", String(Math.round(nextRect.left)));
+          localStorage.setItem("opendriveviewer_top", String(Math.round(nextRect.top)));
+        };
+        const onPointerUp = () => {
+          spotlightResizeHandleRight.removeEventListener("pointermove", onPointerMove);
+          spotlightResizeHandleRight.removeEventListener("pointerup", onPointerUp);
+          spotlightResizeHandleRight.removeEventListener("pointercancel", onPointerUp);
+        };
+        spotlightResizeHandleRight.addEventListener("pointermove", onPointerMove);
+        spotlightResizeHandleRight.addEventListener("pointerup", onPointerUp);
+        spotlightResizeHandleRight.addEventListener("pointercancel", onPointerUp);
+      }
+
+      function startLeftResize(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = spotlight.getBoundingClientRect();
+        const startX = event.clientX;
+        const startLeft = rect.left;
+        const startTop = rect.top;
+        const startWidth = rect.width;
+        spotlightResizeHandleLeft.setPointerCapture(event.pointerId);
+
+        const onPointerMove = (moveEvent) => {
+          const dx = moveEvent.clientX - startX;
+          setSpotlightLeftResize(startLeft + dx, startWidth - dx, startTop);
+        };
+        const onPointerUp = () => {
+          spotlightResizeHandleLeft.removeEventListener("pointermove", onPointerMove);
+          spotlightResizeHandleLeft.removeEventListener("pointerup", onPointerUp);
+          spotlightResizeHandleLeft.removeEventListener("pointercancel", onPointerUp);
+        };
+        spotlightResizeHandleLeft.addEventListener("pointermove", onPointerMove);
+        spotlightResizeHandleLeft.addEventListener("pointerup", onPointerUp);
+        spotlightResizeHandleLeft.addEventListener("pointercancel", onPointerUp);
+      }
+
+      spotlightResizeHandleRight.addEventListener("pointerdown", startRightResize);
+      spotlightResizeHandleLeft.addEventListener("pointerdown", startLeftResize);
+      window.addEventListener("resize", () => {
+        setSpotlightWidth(spotlight.getBoundingClientRect().width);
+        const rect = spotlight.getBoundingClientRect();
+        setSpotlightPosition(rect.left, rect.top);
+      });
+      window.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+          event.preventDefault();
+          undoLastMovement();
+        }
+      });
+      restoreSpotlightLayout();
     </script>
   </body>
 </html>
