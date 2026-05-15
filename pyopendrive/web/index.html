@@ -232,6 +232,33 @@
         background: #f2f4f7;
       }
 
+      #global_lane_width_control {
+        display: grid;
+        grid-template-columns: minmax(96px, 0.46fr) minmax(74px, 1fr);
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      #global_lane_width_control label {
+        min-width: 0;
+        margin: 0;
+        color: #667085;
+        overflow-wrap: anywhere;
+        font-weight: 400;
+      }
+
+      #global_lane_width {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid rgba(20, 24, 28, 0.2);
+        border-radius: 4px;
+        padding: 4px 6px;
+        color: #111827;
+        background: #ffffff;
+        font: inherit;
+      }
+
       #attribute_fields {
         display: grid;
         gap: 6px;
@@ -351,6 +378,10 @@
             <button id="add_mastarm_btn" type="button">Add Mast Arm</button>
             <button id="undo_move_btn" type="button">Undo Move</button>
           </div>
+          <div id="global_lane_width_control">
+            <label for="global_lane_width">LANE WIDTH</label>
+            <input id="global_lane_width" type="number" min="0.2" step="0.1" value="3.5" />
+          </div>
           <div id="attribute_fields"></div>
         </div>
       </div>
@@ -385,6 +416,7 @@
       const addPostButton = document.getElementById("add_post_btn");
       const addMastArmButton = document.getElementById("add_mastarm_btn");
       const undoMoveButton = document.getElementById("undo_move_btn");
+      const globalLaneWidthInput = document.getElementById("global_lane_width");
 
       // The browser keeps three editable data sets:
       // roads for OpenDRIVE planView centerlines, lanes for lane-level polygons,
@@ -397,6 +429,8 @@
       let copiedLaneLink = null;
       let dragState = null;
       let undoStack = [];
+      let currentLaneWidth = 3.5;
+      let generatedFeatureCounter = 0;
       let currentGeoJson = {
         type: "FeatureCollection",
         features: [],
@@ -843,7 +877,7 @@
         if (feature.properties?.feature_type === "signal") {
           return findSignalFeatureByKey(feature.properties?.signal_key || feature.id) || feature;
         }
-        if (feature.properties?.feature_type === "signal_object") {
+        if (["signal_object", "environment_object"].includes(feature.properties?.feature_type)) {
           return findSignalObjectFeatureByKey(feature.properties?.object_key || feature.id) || feature;
         }
         if (feature.geometry?.type === "Polygon") {
@@ -973,7 +1007,7 @@
           coordinates: translateCoordinates(feature.geometry.coordinates, dLng, dLat),
         };
         const center = feature.geometry.type === "Polygon" ? polygonCenter(feature) : null;
-        if (center && ["signal", "signal_object"].includes(feature.properties?.feature_type)) {
+        if (center && ["signal", "signal_object", "environment_object"].includes(feature.properties?.feature_type)) {
           feature.properties.lon = center[0];
           feature.properties.lat = center[1];
         }
@@ -989,6 +1023,7 @@
         if (props.feature_type === "lane") return { type: "lane", key: laneKeyFromProperties(props) };
         if (props.feature_type === "signal") return { type: "signal", key: String(props.signal_key || feature.id) };
         if (props.feature_type === "signal_object") return { type: "signal_object", key: String(props.object_key || feature.id) };
+        if (props.feature_type === "environment_object") return { type: "environment_object", key: String(props.object_key || feature.id) };
         if (props.feature_type === "road") return { type: "road", key: String(props.road_id || feature.id) };
         return null;
       }
@@ -998,6 +1033,7 @@
         if (ref.type === "lane") return findLaneFeatureByKey(ref.key);
         if (ref.type === "signal") return findSignalFeatureByKey(ref.key);
         if (ref.type === "signal_object") return findSignalObjectFeatureByKey(ref.key);
+        if (ref.type === "environment_object") return findSignalObjectFeatureByKey(ref.key);
         if (ref.type === "road") return findRoadFeatureById(ref.key);
         return null;
       }
@@ -1038,6 +1074,117 @@
         const dx = (Number(a[0]) - Number(b[0])) * 111320 * Math.cos((lat * Math.PI) / 180);
         const dy = (Number(a[1]) - Number(b[1])) * 110540;
         return Math.hypot(dx, dy);
+      }
+
+      function metersPerDegree(lat) {
+        return {
+          lon: Math.max(1e-9, 111320 * Math.cos((Number(lat) * Math.PI) / 180)),
+          lat: 110540,
+        };
+      }
+
+      function estimateLaneWidth(feature) {
+        const stored = Number(feature?.properties?.width);
+        if (Number.isFinite(stored) && stored > 0) return stored;
+        const ring = feature?.geometry?.coordinates?.[0] || [];
+        const points = ring.length > 1 ? ring.slice(0, -1) : ring;
+        if (points.length < 4) return null;
+        const half = Math.floor(points.length / 2);
+        const outer = points.slice(0, half);
+        const inner = points.slice(half).reverse();
+        const widths = outer
+          .map((point, index) => metersBetween(point, inner[index]))
+          .filter((width) => Number.isFinite(width) && width > 0.1)
+          .sort((a, b) => a - b);
+        return widths.length ? widths[Math.floor(widths.length / 2)] : null;
+      }
+
+      function updateGlobalLaneWidthFromNetwork() {
+        const measured = currentLaneGeoJson.features
+          .map(estimateLaneWidth)
+          .filter((width) => Number.isFinite(width) && width > 0.1)
+          .sort((a, b) => a - b);
+        const typicalDrivingWidths = currentLaneGeoJson.features
+          .filter((feature) => feature.properties?.lane_type === "driving")
+          .map(estimateLaneWidth)
+          .filter((width) => Number.isFinite(width) && width >= 1.5 && width <= 6.0)
+          .sort((a, b) => a - b);
+        const widths = typicalDrivingWidths.length ? typicalDrivingWidths : measured;
+        const nextWidth = widths.length ? widths[Math.floor(widths.length / 2)] : currentLaneWidth;
+        currentLaneWidth = Math.max(0.2, Number(nextWidth) || 3.5);
+        globalLaneWidthInput.value = currentLaneWidth.toFixed(2);
+      }
+
+      function laneCenterline(feature) {
+        if (feature?.geometry?.type === "LineString") return feature.geometry.coordinates || [];
+        const ring = feature?.geometry?.coordinates?.[0] || [];
+        const points = ring.length > 1 ? ring.slice(0, -1) : ring;
+        if (points.length < 4) return [];
+        const half = Math.floor(points.length / 2);
+        const outer = points.slice(0, half);
+        const inner = points.slice(half).reverse();
+        return outer.map((point, index) => {
+          const other = inner[index] || point;
+          return [(Number(point[0]) + Number(other[0])) * 0.5, (Number(point[1]) + Number(other[1])) * 0.5];
+        });
+      }
+
+      function lineToLanePolygon(lineCoordinates, widthMeters = currentLaneWidth) {
+        const coordinates = (lineCoordinates || []).filter((coord) => Array.isArray(coord) && coord.length >= 2);
+        if (coordinates.length < 2) return null;
+        const halfWidth = Math.max(0.1, Number(widthMeters) * 0.5 || 1.75);
+        const anchorLat = coordinates.reduce((sum, coord) => sum + Number(coord[1] || 0), 0) / coordinates.length;
+        const scale = metersPerDegree(anchorLat);
+        const origin = coordinates[0];
+        const xy = coordinates.map((coord) => [
+          (Number(coord[0]) - Number(origin[0])) * scale.lon,
+          (Number(coord[1]) - Number(origin[1])) * scale.lat,
+        ]);
+        const normals = xy.map((point, index) => {
+          const prev = xy[Math.max(0, index - 1)];
+          const next = xy[Math.min(xy.length - 1, index + 1)];
+          const dx = next[0] - prev[0];
+          const dy = next[1] - prev[1];
+          const length = Math.hypot(dx, dy) || 1;
+          return [-dy / length, dx / length];
+        });
+        const toLonLat = (point, normal, sign) => [
+          Number(origin[0]) + (point[0] + normal[0] * halfWidth * sign) / scale.lon,
+          Number(origin[1]) + (point[1] + normal[1] * halfWidth * sign) / scale.lat,
+        ];
+        const left = xy.map((point, index) => toLonLat(point, normals[index], 1));
+        const right = xy.map((point, index) => toLonLat(point, normals[index], -1));
+        const ring = [...left, ...right.reverse()];
+        ring.push(ring[0]);
+        return {
+          type: "Polygon",
+          coordinates: [ring],
+        };
+      }
+
+      function rebuildLaneGeometry(feature, widthMeters = currentLaneWidth) {
+        const centerline = laneCenterline(feature);
+        const geometry = lineToLanePolygon(centerline, widthMeters);
+        if (geometry) feature.geometry = geometry;
+      }
+
+      function applyGlobalLaneWidth() {
+        const width = Number(globalLaneWidthInput.value);
+        if (!Number.isFinite(width) || width <= 0) {
+          setStatus("Enter a positive lane width in meters.", true);
+          return;
+        }
+        currentLaneWidth = width;
+        for (const lane of currentLaneGeoJson.features) {
+          if (lane.properties?.feature_type !== "lane") continue;
+          lane.properties.width = width;
+          rebuildLaneGeometry(lane, width);
+        }
+        refreshFeatureSources();
+        if (selectedFeature?.properties?.feature_type === "lane") {
+          renderAttributeEditor(selectedFeature);
+        }
+        setStatus(`Updated all lane widths to ${width.toFixed(2)} m. Save to write lane width records.`);
       }
 
       function laneEndpoints(feature) {
@@ -1098,7 +1245,7 @@
       }
 
       function updateSignalDerivedMapProperties(feature) {
-        if (!["signal", "signal_object"].includes(feature.properties?.feature_type)) return;
+        if (!["signal", "signal_object", "environment_object"].includes(feature.properties?.feature_type)) return;
         const props = feature.properties;
         const base = Math.max(0, Number(props.zOffset ?? props.z ?? 0) || 0);
         const height = Math.max(1, Number(props.height) || 1);
@@ -1112,6 +1259,9 @@
           const length = Math.max(Number(props.length) || Number(props.radius) * 2 || 0.4, 0.4);
           const width = Math.max(Number(props.width) || Number(props.radius) * 2 || 0.4, 0.4);
           feature.geometry.coordinates = [localRect(center[0], center[1], Number(props.map_heading) || 0, length, width)];
+        } else if (center && props.feature_type === "environment_object") {
+          props.lon = center[0];
+          props.lat = center[1];
         }
       }
 
@@ -1129,7 +1279,7 @@
         const newKey = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
         const oldLaneId = oldProps.lane_id;
         props.lane_key = newKey;
-        feature.id = newKey;
+        feature.id = props.editor_id || newKey;
 
         for (const lane of currentLaneGeoJson.features) {
           const laneProps = lane.properties || {};
@@ -1179,9 +1329,9 @@
           if (signalProps.feature_type === "signal") {
             signalProps.signal_key = `${newRoadId}/${signalProps.signal_id}`;
             signal.id = signalProps.signal_key;
-          } else if (signalProps.feature_type === "signal_object") {
+          } else if (["signal_object", "environment_object"].includes(signalProps.feature_type)) {
             signalProps.object_key = `${newRoadId}/${signalProps.object_id}`;
-            signal.id = signalProps.object_key;
+            signal.id = signalProps.editor_id || signalProps.object_key;
           }
         }
       }
@@ -1191,9 +1341,9 @@
         if (props.feature_type === "signal") {
           props.signal_key = `${props.road_id}/${props.signal_id}`;
           feature.id = props.signal_key;
-        } else if (props.feature_type === "signal_object") {
+        } else if (["signal_object", "environment_object"].includes(props.feature_type)) {
           props.object_key = `${props.road_id}/${props.object_id}`;
-          feature.id = props.object_key;
+          feature.id = props.editor_id || props.object_key;
         }
       }
 
@@ -1203,7 +1353,12 @@
           cascadeRoadIdentity(feature, oldProps);
         } else if (feature.properties.feature_type === "lane") {
           refreshLaneIdentity(feature, oldProps);
-        } else if (["signal", "signal_object"].includes(feature.properties.feature_type)) {
+          if (key === "width") {
+            currentLaneWidth = Math.max(0.2, Number(nextValue) || currentLaneWidth);
+            globalLaneWidthInput.value = currentLaneWidth.toFixed(2);
+            rebuildLaneGeometry(feature, currentLaneWidth);
+          }
+        } else if (["signal", "signal_object", "environment_object"].includes(feature.properties.feature_type)) {
           cascadeSignalIdentity(feature);
           updateSignalDerivedMapProperties(feature);
         }
@@ -1237,6 +1392,103 @@
         return sign * (Math.max(0, ...ids) + 1);
       }
 
+      function generatedEditorId(prefix) {
+        generatedFeatureCounter += 1;
+        return `${prefix}_${Date.now()}_${generatedFeatureCounter}`;
+      }
+
+      function nearestLaneForGeometry(geometry) {
+        const coordinates = geometry?.type === "LineString" ? geometry.coordinates : laneCenterline({ geometry });
+        if (!coordinates || coordinates.length === 0) return null;
+        const probes = [coordinates[0], coordinates[coordinates.length - 1], coordinates[Math.floor(coordinates.length / 2)]];
+        let best = null;
+        for (const lane of currentLaneGeoJson.features) {
+          const center = polygonCenter(lane);
+          const endpoints = laneEndpoints(lane);
+          const candidates = [center, endpoints?.start, endpoints?.end].filter(Boolean);
+          for (const probe of probes) {
+            for (const candidate of candidates) {
+              const distance = metersBetween(probe, candidate);
+              if (!best || distance < best.distance) best = { lane, distance };
+            }
+          }
+        }
+        return best?.lane || null;
+      }
+
+      function defaultLaneContext(geometry) {
+        const selectedLane = selectedFeature?.properties?.feature_type === "lane" ? selectedFeature : null;
+        const nearbyLane = selectedLane || nearestLaneForGeometry(geometry);
+        const selectedRoad = selectedFeature?.properties?.feature_type === "road" ? selectedFeature : null;
+        if (nearbyLane) return { ...nearbyLane.properties };
+        if (selectedRoad) {
+          return {
+            road_id: selectedRoad.properties?.road_id || selectedRoad.id,
+            road_name: selectedRoad.properties?.name || "",
+            junction: selectedRoad.properties?.junction ?? "-1",
+            lane_id: -1,
+            lane_type: "driving",
+            level: false,
+            lanesection_s0: 0,
+          };
+        }
+        const firstLane = currentLaneGeoJson.features.find((feature) => feature.properties?.feature_type === "lane");
+        return firstLane ? { ...firstLane.properties } : null;
+      }
+
+      function addLaneFeatureFromGeometry(geometry, source = "maplibre-gl-geo-editor") {
+        const context = defaultLaneContext(geometry);
+        if (!context?.road_id) {
+          setStatus("Open a network or select a road/lane before adding lane geometry.", true);
+          return null;
+        }
+        const laneId = nextLaneId(context);
+        const laneWidth = Math.max(0.2, Number(context.width) || currentLaneWidth);
+        const geometryPrefix = geometry.type === "LineString" ? "odr" : "odr_polygon";
+        const generatedId = generatedEditorId(geometryPrefix);
+        const props = {
+          ...context,
+          feature_type: "lane",
+          editor_id: generatedId,
+          generated_from: geometry.type,
+          lane_id: laneId,
+          lane_key: `${context.road_id}/${Number(context.lanesection_s0 || 0).toFixed(6)}/${laneId}`,
+          lane_type: context.lane_type || "driving",
+          level: context.level ?? false,
+          predecessor: 0,
+          successor: 0,
+          predecessor_keys: [],
+          successor_keys: [],
+          width: laneWidth,
+          source,
+        };
+        const laneGeometry = geometry.type === "LineString"
+          ? lineToLanePolygon(geometry.coordinates, laneWidth)
+          : geometry;
+        if (!laneGeometry) {
+          setStatus("Draw at least two points before creating a lane.", true);
+          return null;
+        }
+        const feature = {
+          type: "Feature",
+          id: generatedId,
+          properties: props,
+          geometry: laneGeometry,
+        };
+        if (geometry.type === "Polygon") {
+          rebuildLaneGeometry(feature, laneWidth);
+        }
+        currentLaneGeoJson.features.push(feature);
+        const connected = autoConnectDraggedLane(feature, Math.max(2.5, currentLaneWidth));
+        loadIntoEditor(currentGeoJson);
+        setSpotlightFeature(feature);
+        refreshFeatureSources();
+        setStatus(
+          `Added lane ${laneId} on road ${props.road_id}${connected ? " and connected nearby endpoints" : ""}. Save to write it to OpenDRIVE.`
+        );
+        return feature;
+      }
+
       function addLaneFromSelection() {
         const base = selectedFeature?.properties?.feature_type === "lane" ? selectedFeature : null;
         if (!base) {
@@ -1244,20 +1496,26 @@
           return;
         }
         const props = { ...base.properties };
+        const generatedId = generatedEditorId("odr_button_lane");
+        props.editor_id = generatedId;
+        props.generated_from = "Add Lane";
         props.lane_id = nextLaneId(props);
         props.lane_key = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
         props.predecessor = 0;
         props.successor = 0;
         props.predecessor_keys = [];
         props.successor_keys = [];
+        props.width = currentLaneWidth;
         props.source = "maplibre-gl-geo-editor";
         const feature = {
           ...base,
-          id: props.lane_key,
+          id: generatedId,
           properties: props,
           geometry: shiftedPolygon(base),
         };
+        rebuildLaneGeometry(feature, currentLaneWidth);
         currentLaneGeoJson.features.push(feature);
+        autoConnectDraggedLane(feature, Math.max(2.5, currentLaneWidth));
         setSpotlightFeature(feature);
         refreshFeatureSources();
         setStatus(`Added lane ${props.lane_id} on road ${props.road_id}. Save to write it to OpenDRIVE.`);
@@ -1280,6 +1538,9 @@
           const key = props.signal_key || feature.id;
           removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.signal_key || item.id) === String(key));
         } else if (props.feature_type === "signal_object") {
+          const key = props.object_key || feature.id;
+          removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.object_key || item.id) === String(key));
+        } else if (props.feature_type === "environment_object") {
           const key = props.object_key || feature.id;
           removed = removeFeatureFromCollection(currentSignalGeoJson, (item) => String(item.properties?.object_key || item.id) === String(key));
         }
@@ -1320,7 +1581,7 @@
       function draggableFeatureFromEvent(event) {
         const feature = resolveSourceFeature(event.features?.[0]);
         if (!feature || feature.geometry?.type !== "Polygon") return null;
-        if (!["lane", "signal", "signal_object"].includes(feature.properties?.feature_type)) return null;
+        if (!["lane", "signal", "signal_object", "environment_object"].includes(feature.properties?.feature_type)) return null;
         return feature;
       }
 
@@ -1391,6 +1652,78 @@
           s: Number(props.s ?? props.lanesection_s0 ?? 0),
           t: Number(props.t ?? 0),
         };
+      }
+
+      function polygonDimensionsMeters(geometry) {
+        const ring = geometry?.coordinates?.[0] || [];
+        const points = ring.length > 1 ? ring.slice(0, -1) : ring;
+        if (points.length === 0) return { length: 5, width: 5 };
+        const lons = points.map((coord) => Number(coord[0]) || 0);
+        const lats = points.map((coord) => Number(coord[1]) || 0);
+        const lat = lats.reduce((sum, value) => sum + value, 0) / lats.length;
+        const scale = metersPerDegree(lat);
+        return {
+          length: Math.max(0.5, (Math.max(...lons) - Math.min(...lons)) * scale.lon),
+          width: Math.max(0.5, (Math.max(...lats) - Math.min(...lats)) * scale.lat),
+        };
+      }
+
+      function addEnvironmentObjectFromPolygon(geometry) {
+        const context = defaultLaneContext(geometry);
+        if (!context?.road_id) {
+          setStatus("Open a network or select a road/lane before adding environment geometry.", true);
+          return null;
+        }
+        const center = polygonCenter({ geometry });
+        if (!center) {
+          setStatus("Draw a closed polygon before creating an environment object.", true);
+          return null;
+        }
+        const generatedId = generatedEditorId("odr_polygon_environment");
+        const dimensions = polygonDimensionsMeters(geometry);
+        const props = {
+          feature_type: "environment_object",
+          editor_id: generatedId,
+          generated_from: "Polygon",
+          object_key: `${context.road_id}/${generatedId}`,
+          object_id: generatedId,
+          road_id: context.road_id,
+          road_name: context.road_name || "",
+          name: "Building",
+          environment_type: "building",
+          lon: center[0],
+          lat: center[1],
+          s: Number(context.lanesection_s0 || 0),
+          t: 0,
+          zOffset: 0,
+          length: dimensions.length,
+          width: dimensions.width,
+          radius: 0,
+          height: 8,
+          hdg: 0,
+          map_heading: 0,
+          pitch: 0,
+          roll: 0,
+          orientation: "+",
+          type: "building",
+          subtype: "",
+          dynamic: false,
+          source: "maplibre-gl-geo-editor",
+        };
+        props.extrusion_base = props.zOffset;
+        props.extrusion_height = props.zOffset + props.height;
+        const feature = {
+          type: "Feature",
+          id: generatedId,
+          properties: props,
+          geometry: cloneData(geometry),
+        };
+        currentSignalGeoJson.features.push(feature);
+        loadIntoEditor(currentGeoJson);
+        setSpotlightFeature(feature);
+        refreshFeatureSources();
+        setStatus(`Added environment object ${generatedId}. Edit name/type/height in OpenDriveViewer, then save to write it to OpenDRIVE.`);
+        return feature;
       }
 
       function addSignalDetail(kind) {
@@ -1665,6 +1998,7 @@
       // editing/save support but are hidden so the lane layer carries the map.
       function setLaneSource(geojson) {
         currentLaneGeoJson = geojson || emptyFeatureCollection();
+        updateGlobalLaneWidthFromNetwork();
         if (map.getSource("opendrive-lanes")) {
           map.getSource("opendrive-lanes").setData(currentLaneGeoJson);
           return;
@@ -1778,6 +2112,7 @@
           paint: {
             "fill-extrusion-color": [
               "case",
+              ["==", ["get", "feature_type"], "environment_object"], "#8a6f4d",
               ["==", ["get", "object_role"], "mastarm"], "#475467",
               ["==", ["get", "object_role"], "post"], "#344054",
               ["==", ["get", "dynamic"], true], "#d92d20",
@@ -1906,7 +2241,13 @@
 
       function editorFeatureCollection() {
         if (geoEditor && typeof geoEditor.getAllFeatureCollection === "function") {
-          return geoEditor.getAllFeatureCollection();
+          const collection = geoEditor.getAllFeatureCollection();
+          return {
+            ...collection,
+            features: (collection.features || []).filter((feature) => {
+              return feature.properties?.feature_type === "road";
+            }),
+          };
         }
         return currentGeoJson;
       }
@@ -2043,9 +2384,9 @@
             toolbarOrientation: "vertical",
             columns: 2,
             drawModes: ["line", "polygon"],
-            editModes: ["select", "drag", "change", "delete", "copy", "split", "simplify", "lasso"],
+            editModes: ["select", "change", "delete", "copy", "split", "simplify", "lasso"],
             fileModes: [],
-            fitBoundsOnLoad: true,
+            fitBoundsOnLoad: false,
             enableAttributeEditing: true,
             attributePanelPosition: "right",
             attributePanelWidth: 320,
@@ -2063,42 +2404,29 @@
               ],
             },
             onFeatureCreate: (feature) => {
-              if (feature.geometry?.type === "Polygon") {
-                const selectedProps = selectedFeature?.properties || {};
-                const roadId = feature.properties?.road_id || selectedProps.road_id;
-                if (!roadId) {
-                  setStatus("Select a road or lane before drawing a lane polygon.", true);
-                  return;
-                }
-                const baseProps = selectedProps.feature_type === "lane" ? selectedProps : {};
-                const props = {
-                  ...baseProps,
-                  ...(feature.properties || {}),
-                  feature_type: "lane",
-                  road_id: roadId,
-                  lanesection_s0: Number(baseProps.lanesection_s0 || 0),
-                  lane_id: feature.properties?.lane_id || nextLaneId({ ...baseProps, road_id: roadId, lane_id: baseProps.lane_id || -1 }),
-                  lane_type: feature.properties?.lane_type || baseProps.lane_type || "driving",
-                  level: feature.properties?.level ?? baseProps.level ?? false,
-                  predecessor: feature.properties?.predecessor || 0,
-                  successor: feature.properties?.successor || 0,
-                  source: "maplibre-gl-geo-editor",
-                };
-                props.lane_key = `${props.road_id}/${Number(props.lanesection_s0 || 0).toFixed(6)}/${props.lane_id}`;
-                feature.id = props.lane_key;
-                feature.properties = props;
-                currentLaneGeoJson.features.push(feature);
-                setSpotlightFeature(feature);
-                refreshFeatureSources();
-                setStatus(`Added drawn lane ${props.lane_id}. Save to write it to OpenDRIVE.`);
+              if (currentLaneGeoJson.features.length > 0 && feature.geometry?.type === "LineString") {
+                addLaneFeatureFromGeometry(feature.geometry);
                 return;
               }
+              if (currentLaneGeoJson.features.length > 0 && feature.geometry?.type === "Polygon") {
+                addEnvironmentObjectFromPolygon(feature.geometry);
+                return;
+              }
+              if (feature.geometry?.type === "Polygon") {
+                setStatus("Open an OpenDRIVE network before adding environment polygon geometry.", true);
+                loadIntoEditor(currentGeoJson);
+                return;
+              }
+              const generatedId = generatedEditorId("odr_line_road");
               feature.properties = {
                 ...(feature.properties || {}),
                 feature_type: "road",
-                road_id: feature.properties?.road_id || `new_${Date.now()}`,
+                editor_id: generatedId,
+                generated_from: feature.geometry?.type || "LineString",
+                road_id: feature.properties?.road_id || generatedId,
                 source: "maplibre-gl-geo-editor",
               };
+              feature.id = generatedId;
               setRoadSource(editorFeatureCollection());
             },
             onFeatureEdit: () => setRoadSource(editorFeatureCollection()),
@@ -2151,6 +2479,8 @@
       addPostButton.addEventListener("click", () => addSignalDetail("post"));
       addMastArmButton.addEventListener("click", () => addSignalDetail("mastarm"));
       undoMoveButton.addEventListener("click", undoLastMovement);
+      globalLaneWidthInput.addEventListener("input", applyGlobalLaneWidth);
+      globalLaneWidthInput.addEventListener("change", applyGlobalLaneWidth);
       basemapSelect.addEventListener("change", () => changeBasemap(basemapSelect.value));
       spotlightToggle.addEventListener("click", () => {
         const collapsed = spotlight.classList.toggle("collapsed");
