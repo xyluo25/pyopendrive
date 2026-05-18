@@ -212,11 +212,12 @@ def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) ->
 
 def test_open_drive_map_lon_lat_conversion_without_header_offset(tmp_path: Path) -> None:
     xodr = tmp_path / "no_offset.xodr"
+    proj4 = "+proj=tmerc +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +geoidgrids=egm96_15.gtx +vunits=m +no_defs"
     xodr.write_text(
-        """<?xml version="1.0" encoding="UTF-8"?>
+        f"""<?xml version="1.0" encoding="UTF-8"?>
 <OpenDRIVE>
   <header revMajor="1" revMinor="4" north="10" south="0" east="10" west="0">
-    <geoReference><![CDATA[+proj=tmerc +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +geoidgrids=egm96_15.gtx +vunits=m +no_defs]]></geoReference>
+    <geoReference><![CDATA[{proj4} ]]></geoReference>
   </header>
   <road name="main" length="10" id="1" junction="-1">
     <planView>
@@ -231,10 +232,13 @@ def test_open_drive_map_lon_lat_conversion_without_header_offset(tmp_path: Path)
 
     odr_map = odr.readXodr(xodr)
 
+    assert odr_map.getGeoProj() == proj4
     lon, lat = odr_map.convertXY2LonLat(0.0, 0.0)
     x, y = odr_map.convertLonLat2XY(lon, lat)
 
     assert_vec_finite((lon, lat, x, y))
+    assert lon == pytest.approx(0.0, abs=1e-9)
+    assert lat == pytest.approx(0.0, abs=1e-9)
     assert x == pytest.approx(0.0, abs=1e-6)
     assert y == pytest.approx(0.0, abs=1e-6)
 

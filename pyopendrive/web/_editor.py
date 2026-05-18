@@ -1098,14 +1098,13 @@ def run_server(
 
     Handler.state = state
     server = ThreadingHTTPServer((host, port), Handler)
-    url = f"http://{host}:{server.server_port}/index.html"
+    url = f"http://{host}:{server.server_port}/"
     if open_browser:
         webbrowser.open(url)
     return server, url
 
 
 def xodr_web_viewer(
-    index_html: str | Path = INDEX_HTML,
     *,
     host: str = "127.0.0.1",
     port: int = 8765,
@@ -1114,8 +1113,6 @@ def xodr_web_viewer(
     """Open the bundled MapLibre viewer in the default browser.
 
     Args:
-        index_html: Kept for backward compatibility. Static file opening is no
-            longer used because pyopendrive conversion runs through a local API.
         host: Local interface to bind.
         port: Local port to bind. Use ``0`` to choose any free port.
         default_xodr: Optional OpenDRIVE file loaded at startup.
@@ -1123,7 +1120,7 @@ def xodr_web_viewer(
     Returns:
         The viewer URL.
     """
-    _ = Path(index_html).resolve()
+    _ = Path(INDEX_HTML).resolve()
     server, url = run_server(
         host=host,
         port=port,

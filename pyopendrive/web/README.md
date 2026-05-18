@@ -5,13 +5,13 @@ viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
 
 ## Files
 
-- `index.html` - MapLibre GL editor shell.
-- `index_css.css` - shared page and panel styling.
-- `index_js.js` - MapLibre GL editor logic.
+- `index.html` - clean MapLibre GL editor shell and DOM structure.
+- `index.css` - shared page and panel styling.
+- `index.js` - MapLibre GL editor logic.
 - `__init__.py` - local HTTP API server and OpenDRIVE to GeoJSON converters.
 - `__main__.py` - command line entry point for `python -m pyopendrive.web`.
 - `data.xodr` - default startup network loaded when no `--xodr` path is given.
-- `fonts/`, `favicon.ico` - local UI assets.
+- `static/`, `favicon.ico` - local UI assets.
 
 ## Run / Tutorial
 
@@ -24,7 +24,7 @@ python -m pyopendrive.web --no-browser
 Then open:
 
 ```text
-http://127.0.0.1:8765/index.html
+http://127.0.0.1:8765/
 ```
 
 The default map is `pyopendrive/web/data.xodr`. The page calls
@@ -97,7 +97,7 @@ Arguments:
 Return value:
 
 - `server` - a `ThreadingHTTPServer` instance. Call `serve_forever()` to run it.
-- `url` - the browser URL, usually `http://127.0.0.1:8765/index.html`.
+- `url` - the browser URL, usually `http://127.0.0.1:8765/`.
 
 ### `xodr_web_viewer()` Tutorial
 

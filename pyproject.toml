@@ -56,23 +56,27 @@ include = ["pyopendrive*"]
 [tool.setuptools.package-data]
 pyopendrive = [
     "web/index.html",
+    "web/index.css",
+    "web/index.js",
     "web/README.md",
     "web/viewer.js",
     "web/viewer.wasm",
     "web/viewer.data",
     "web/viewer.local-assets.js",
     "web/favicon.ico",
-    "web/fonts/*",
+    "web/static/*",
 ]
 "pyopendrive.web" = [
     "index.html",
+    "index.css",
+    "index.js",
     "README.md",
     "viewer.js",
     "viewer.wasm",
     "viewer.data",
     "viewer.local-assets.js",
     "favicon.ico",
-    "fonts/*",
+    "static/*",
 ]
 
 [[tool.uv.index]]
