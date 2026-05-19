@@ -8,7 +8,7 @@
       content="OpenDRIVE editor powered by pyopendrive, MapLibre GL, and maplibre-gl-geo-editor."
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/maplibre-geoman-free@0.7.1/dist/maplibre-geoman.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl-geo-editor@0.7.3/style.css" />
     <link rel="stylesheet" href="./static/font-awesome.min.css" />
@@ -17,6 +17,12 @@
   </head>
   <body>
     <div id="map"></div>
+    <div id="loading_screen" class="fullscreen" aria-live="polite" aria-busy="true">
+      <p id="loading_screen_msg" class="centered">
+        <i class="fa fa-hourglass"></i>
+        <span id="loading_screen_msg_txt">Loading...</span>
+      </p>
+    </div>
     <div id="toolbar">
       <input id="xodr_file_input" type="file" accept=".xodr,.xml" />
       <label for="xodr_file_input" class="btn btn-primary btn-sm">

@@ -1,9 +1,11 @@
-import maplibregl from "https://esm.sh/maplibre-gl@5.7.1";
+import maplibregl from "https://esm.sh/maplibre-gl@5.24.0";
 import { Geoman } from "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1";
 import { GeoEditor } from "https://esm.sh/maplibre-gl-geo-editor@0.7.3";
 import { odrObjectDefinitions } from "./static/odr-3d-objects.js?v=20260515_objects_color";
 
 const status = document.getElementById("status");
+const loadingScreen = document.getElementById("loading_screen");
+const loadingScreenText = document.getElementById("loading_screen_msg_txt");
 const fileInput = document.getElementById("xodr_file_input");
 const objectPalette = document.getElementById("object_palette");
 const objectPaletteGrid = document.getElementById("object_palette_grid");
@@ -51,7 +53,11 @@ let generatedFeatureCounter = 0;
 const objectDefinitions = odrObjectDefinitions;
 const processedEditorFeatureKeys = new Set();
 let geoEditorLiveDrawActive = false;
+let geoEditorSyncPending = false;
+let geoEditorSyncToken = 0;
 let pendingPayloadAfterStyle = null;
+let pendingPayloadLoadResolver = null;
+const MAPLIBRE_SAFE_SOURCE_MAXZOOM = 24;
 let currentGeoJson = {
   type: "FeatureCollection",
   features: [],
@@ -66,6 +72,7 @@ let currentSignalGeoJson = {
 };
 let pendingStyleRestore = null;
 let restoreRequestId = 0;
+let loadingOverlayCount = 0;
 
 // Basemaps are only the background.  OpenDRIVE layers are restored after
 // every style change so loaded lanes/signals do not disappear.
@@ -157,6 +164,7 @@ function basemapStyle(basemapId) {
         type: "raster",
         tiles: basemap.tiles,
         tileSize: 256,
+        maxzoom: MAPLIBRE_SAFE_SOURCE_MAXZOOM,
         attribution: basemap.attribution,
       },
     },
@@ -189,6 +197,19 @@ const map = new maplibregl.Map({
   bearing: 180,
   attributionControl: true,
 });
+
+function withSafeSourceMaxZoom(sourceSpec) {
+  if (!sourceSpec || !["geojson", "raster"].includes(sourceSpec.type)) return sourceSpec;
+  const currentMaxZoom = Number(sourceSpec.maxzoom);
+  if (Number.isFinite(currentMaxZoom) && currentMaxZoom >= MAPLIBRE_SAFE_SOURCE_MAXZOOM) return sourceSpec;
+  return {
+    ...sourceSpec,
+    maxzoom: MAPLIBRE_SAFE_SOURCE_MAXZOOM,
+  };
+}
+
+const mapAddSource = map.addSource.bind(map);
+map.addSource = (sourceId, sourceSpec) => mapAddSource(sourceId, withSafeSourceMaxZoom(sourceSpec));
 
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
 map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -500,10 +521,7 @@ function setGridMeshSource() {
     ensureGridMeshLayers();
     return;
   }
-  map.addSource("gridmesh-lines", {
-    type: "geojson",
-    data: geojson,
-  });
+  addEditorGeoJsonSource("gridmesh-lines", geojson);
   ensureGridMeshLayers();
 }
 
@@ -610,7 +628,12 @@ function restoreOverlayLayersAfterStyleChange(requestId = restoreRequestId, atte
   if (pendingPayloadAfterStyle) {
     const payload = pendingPayloadAfterStyle;
     pendingPayloadAfterStyle = null;
-    installPayloadData(payload);
+    const installed = installPayloadData(payload);
+    if (pendingPayloadLoadResolver) {
+      const resolve = pendingPayloadLoadResolver;
+      pendingPayloadLoadResolver = null;
+      resolve(installed);
+    }
   }
   if (pendingStyleRestore) {
     setSpotlightFeature(pendingStyleRestore);
@@ -682,12 +705,66 @@ function setStatus(message, isError = false) {
   }
   status.textContent = message;
   status.style.color = isError ? "#8a1f11" : "#1f2933";
+  if (!isError && loadingOverlayCount > 0) setLoadingOverlayMessage(message);
   updateBasemapPosition();
 }
 
 function updateBasemapPosition() {
   const statusHeight = status.getBoundingClientRect().height || 0;
   basemapSelect.parentElement.style.bottom = `${Math.ceil(statusHeight + 24)}px`;
+}
+
+function setLoadingOverlayMessage(message) {
+  if (loadingScreenText) loadingScreenText.textContent = message || "Loading...";
+}
+
+function showLoadingOverlay(message = "Loading...") {
+  loadingOverlayCount += 1;
+  setLoadingOverlayMessage(message);
+  if (!loadingScreen) return;
+  loadingScreen.classList.remove("loading-hidden");
+  loadingScreen.setAttribute("aria-busy", "true");
+}
+
+function hideLoadingOverlay(force = false) {
+  loadingOverlayCount = force ? 0 : Math.max(0, loadingOverlayCount - 1);
+  if (loadingOverlayCount > 0 || !loadingScreen) return;
+  loadingScreen.classList.add("loading-hidden");
+  loadingScreen.setAttribute("aria-busy", "false");
+}
+
+function elapsedSeconds(startMs) {
+  return Math.max(0, (performance.now() - startMs) / 1000);
+}
+
+function formatSeconds(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value)) return "0.00 seconds";
+  return `${value.toFixed(value < 10 ? 2 : 1)} seconds`;
+}
+
+function formatFileSize(bytes) {
+  const value = Number(bytes);
+  if (!Number.isFinite(value) || value <= 0) return "unknown size";
+  const units = ["B", "KB", "MB", "GB"];
+  let scaled = value;
+  let unitIndex = 0;
+  while (scaled >= 1024 && unitIndex < units.length - 1) {
+    scaled /= 1024;
+    unitIndex += 1;
+  }
+  const precision = unitIndex === 0 ? 0 : (scaled < 10 ? 2 : 1);
+  return `${scaled.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+function payloadFileSize(payload, fallbackBytes = 0) {
+  const payloadBytes = Number(payload?.file_size_bytes);
+  if (Number.isFinite(payloadBytes) && payloadBytes > 0) return payloadBytes;
+  return fallbackBytes;
+}
+
+function loadSummary(payload, elapsed, fileSizeBytes) {
+  return `Loaded ${currentFilename} (${formatFileSize(fileSizeBytes)}) in ${formatSeconds(elapsed)}: ${payload.lane_geojson.features.length} lanes, ${(payload.signal_geojson?.features.length || 0)} signals, and ${payload.geojson.features.length} editable roads.`;
 }
 
 function errorMessage(error) {
@@ -800,6 +877,16 @@ function emptyFeatureCollection() {
     type: "FeatureCollection",
     features: [],
   };
+}
+
+function addEditorGeoJsonSource(sourceId, data) {
+  // Keep source maxzoom above the map max zoom. MapLibre 5.x can otherwise
+  // retain an overscaled tile as if it had four children during fractional zoom.
+  map.addSource(sourceId, {
+    type: "geojson",
+    data: data || emptyFeatureCollection(),
+    maxzoom: MAPLIBRE_SAFE_SOURCE_MAXZOOM,
+  });
 }
 
 // Feature lookup helpers always return the source object from the editable
@@ -990,6 +1077,12 @@ function translateFeature(feature, dLng, dLat) {
     feature.properties.lon = center[0];
     feature.properties.lat = center[1];
   }
+}
+
+function markFeatureGeometryEdited(feature, kind = "translated") {
+  if (!feature) return;
+  feature.geometry_edited = true;
+  feature.geometry_edit_kind = kind;
 }
 
 function cloneData(value) {
@@ -1658,6 +1751,7 @@ function endFeatureDrag() {
   if (moved) {
     undoStack.push(before);
     if (undoStack.length > 50) undoStack.shift();
+    markFeatureGeometryEdited(feature);
   }
   const connected = autoConnectDraggedLane(feature);
   updateSignalDerivedMapProperties(feature);
@@ -2390,10 +2484,7 @@ function setLaneSource(geojson) {
     return;
   }
 
-  map.addSource("opendrive-lanes", {
-    type: "geojson",
-    data: currentLaneGeoJson,
-  });
+  addEditorGeoJsonSource("opendrive-lanes", currentLaneGeoJson);
   map.addLayer({
     id: "opendrive-lanes",
     type: "fill",
@@ -2423,10 +2514,7 @@ function setLaneSource(geojson) {
       "line-opacity": 0.72,
     },
   });
-  map.addSource("opendrive-lane-directions", {
-    type: "geojson",
-    data: laneDirectionGeoJson(currentLaneGeoJson),
-  });
+  addEditorGeoJsonSource("opendrive-lane-directions", laneDirectionGeoJson(currentLaneGeoJson));
   map.addLayer({
     id: "opendrive-lane-direction-arrows",
     type: "fill",
@@ -2441,10 +2529,7 @@ function setLaneSource(geojson) {
     },
   });
   updateLaneArrowControls();
-  map.addSource("opendrive-lane-adjacent", {
-    type: "geojson",
-    data: emptyFeatureCollection(),
-  });
+  addEditorGeoJsonSource("opendrive-lane-adjacent", emptyFeatureCollection());
   map.addLayer({
     id: "opendrive-lane-adjacent",
     type: "fill",
@@ -2473,10 +2558,7 @@ function setLaneSource(geojson) {
       "line-width": 3,
     },
   });
-  map.addSource("opendrive-lane-selected", {
-    type: "geojson",
-    data: emptyFeatureCollection(),
-  });
+  addEditorGeoJsonSource("opendrive-lane-selected", emptyFeatureCollection());
   map.addLayer({
     id: "opendrive-lane-selected",
     type: "fill",
@@ -2505,10 +2587,7 @@ function setSignalSource(geojson) {
     return;
   }
 
-  map.addSource("opendrive-signals", {
-    type: "geojson",
-    data: currentSignalGeoJson,
-  });
+  addEditorGeoJsonSource("opendrive-signals", currentSignalGeoJson);
   map.addLayer({
     id: "opendrive-signal-hitbox",
     type: "fill",
@@ -2575,10 +2654,7 @@ function setRoadSource(geojson) {
   if (map.getSource("opendrive-roads")) {
     map.getSource("opendrive-roads").setData(geojson);
   } else {
-    map.addSource("opendrive-roads", {
-      type: "geojson",
-      data: geojson,
-    });
+    addEditorGeoJsonSource("opendrive-roads", geojson);
     map.addLayer({
       id: "opendrive-road-casing",
       type: "line",
@@ -2604,10 +2680,7 @@ function setRoadSource(geojson) {
         "line-width": 3,
       },
     });
-    map.addSource("opendrive-spotlight", {
-      type: "geojson",
-      data: emptyFeatureCollection(),
-    });
+    addEditorGeoJsonSource("opendrive-spotlight", emptyFeatureCollection());
     map.addLayer({
       id: "opendrive-spotlight-glow",
       type: "line",
@@ -2635,14 +2708,27 @@ function setRoadSource(geojson) {
 // This is also used after save so ids, links, and derived geometry match
 // the OpenDRIVE file that was just written.
 function loadIntoEditor(geojson) {
-  if (geoEditor) {
+  setRoadSource(geojson);
+  if (!geoEditor) return;
+
+  geoEditorSyncPending = true;
+  const token = ++geoEditorSyncToken;
+  const syncRoadsIntoEditor = () => {
+    if (token !== geoEditorSyncToken || !geoEditor) return;
     try {
       geoEditor.loadGeoJson(geojson);
     } catch (error) {
       console.warn("maplibre-gl-geo-editor could not load road GeoJSON", error);
+    } finally {
+      if (token === geoEditorSyncToken) geoEditorSyncPending = false;
     }
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(syncRoadsIntoEditor, { timeout: 1200 });
+  } else {
+    setTimeout(syncRoadsIntoEditor, 0);
   }
-  setRoadSource(geojson);
 }
 
 function installPayloadData(payload) {
@@ -2658,9 +2744,11 @@ function installPayloadData(payload) {
           ? payload.signal_geojson
           : payload.geojson)
     );
+    return true;
   } catch (error) {
     console.error(error);
     setStatus(`Failed to draw ${payload?.filename || "OpenDRIVE network"}: ${errorMessage(error)}`, true);
+    return false;
   }
 }
 
@@ -2675,13 +2763,15 @@ function loadPayload(payload) {
   const basemapChanged = applyDefaultBasemapForPayload(payload);
   if (basemapChanged) {
     pendingPayloadAfterStyle = payload;
-  } else {
-    installPayloadData(payload);
+    return new Promise((resolve) => {
+      pendingPayloadLoadResolver = resolve;
+    });
   }
+  return Promise.resolve(installPayloadData(payload));
 }
 
 function editorFeatureCollection() {
-  if (geoEditor && typeof geoEditor.getAllFeatureCollection === "function") {
+  if (!geoEditorSyncPending && geoEditor && typeof geoEditor.getAllFeatureCollection === "function") {
     const collection = geoEditor.getAllFeatureCollection();
     return {
       ...collection,
@@ -2723,46 +2813,58 @@ function syncBeforeSave() {
 }
 
 async function loadNetwork() {
+  const startedAt = performance.now();
+  showLoadingOverlay("Loading OpenDRIVE network...");
   setStatus("Loading OpenDRIVE network...");
-  const payload = await requestJson("/api/network");
-  loadPayload(payload);
-  setStatus(
-    `Loaded ${currentFilename}: ${payload.lane_geojson.features.length} lanes, ${(payload.signal_geojson?.features.length || 0)} signals, and ${payload.geojson.features.length} editable roads from pyopendrive.`
-  );
+  try {
+    const payload = await requestJson("/api/network");
+    const installed = await loadPayload(payload);
+    if (installed) setStatus(loadSummary(payload, elapsedSeconds(startedAt), payloadFileSize(payload)));
+  } finally {
+    hideLoadingOverlay();
+  }
 }
 
 async function openXodrFile(file) {
   if (!file) return;
+  const startedAt = performance.now();
+  showLoadingOverlay(`Reading ${file.name} (${formatFileSize(file.size)})...`);
   try {
-    setStatus(`Reading ${file.name}...`);
+    setStatus(`Reading ${file.name} (${formatFileSize(file.size)})...`);
     const text = await file.text();
+    setStatus(`Loading ${file.name} into OpenDRIVE map...`);
     const payload = await requestJson("/api/load-xodr", {
       method: "POST",
       body: JSON.stringify({ filename: file.name, xodr: text }),
     });
-    loadPayload(payload);
-    setStatus(
-      `Loaded ${currentFilename}: ${payload.lane_geojson.features.length} lane polygons and ${(payload.signal_geojson?.features.length || 0)} signals geocoded with convertXY2LonLat.`
-    );
+    const installed = await loadPayload(payload);
+    if (installed) setStatus(loadSummary(payload, elapsedSeconds(startedAt), payloadFileSize(payload, file.size)));
   } catch (error) {
     console.error(error);
     setStatus(`Failed to load ${file.name}: ${errorMessage(error)}`, true);
+  } finally {
+    hideLoadingOverlay();
   }
 }
 
 // Save sends all editable collections.  The server decides which fields
 // can safely be written to OpenDRIVE XML and returns a refreshed payload.
 async function saveEditedXodr() {
+  showLoadingOverlay("Saving edited OpenDRIVE network...");
   setStatus("Saving edited OpenDRIVE network...");
-  const savePayload = syncBeforeSave();
-  const payload = await requestJson("/api/save-xodr", {
-    method: "POST",
-    body: JSON.stringify(savePayload),
-  });
-  currentFilename = payload.saved_filename || `edited_${currentFilename}`;
-  loadPayload(payload);
-  downloadText(currentFilename, payload.xodr);
-  setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads and refreshed ${payload.lane_geojson.features.length} lanes plus ${(payload.signal_geojson?.features.length || 0)} signals.`);
+  try {
+    const savePayload = syncBeforeSave();
+    const payload = await requestJson("/api/save-xodr", {
+      method: "POST",
+      body: JSON.stringify(savePayload),
+    });
+    currentFilename = payload.saved_filename || `edited_${currentFilename}`;
+    await loadPayload(payload);
+    downloadText(currentFilename, payload.xodr);
+    setStatus(`Saved ${currentFilename} from ${payload.geojson.features.length} edited roads and refreshed ${payload.lane_geojson.features.length} lanes plus ${(payload.signal_geojson?.features.length || 0)} signals.`);
+  } finally {
+    hideLoadingOverlay();
+  }
 }
 
 // Small console/debug API kept for developers and old demos.

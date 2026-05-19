@@ -22,6 +22,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import tempfile
 import threading
+import time
 from typing import Any
 from urllib.parse import urlparse
 import webbrowser
@@ -43,14 +44,40 @@ __all__ = ["xodr_web_viewer", "run_server"]
 
 def _as_lon_lat(odr_map: Any, x: float, y: float) -> tuple[float, float]:
     """Convert OpenDRIVE local meters to world map longitude/latitude."""
+    key = (round(float(x), 6), round(float(y), 6))
+    cache = getattr(odr_map, "_web_lon_lat_cache", None)
+    if cache is None:
+        cache = {}
+        try:
+            setattr(odr_map, "_web_lon_lat_cache", cache)
+        except Exception:
+            cache = None
+    if cache is not None and key in cache:
+        return cache[key]
     lon, lat = odr_map.convertXY2LonLat(x, y)
-    return (float(lon), float(lat))
+    result = (float(lon), float(lat))
+    if cache is not None:
+        cache[key] = result
+    return result
 
 
 def _as_xy(odr_map: Any, lon: float, lat: float) -> tuple[float, float]:
     """Convert world map longitude/latitude back to OpenDRIVE local meters."""
+    key = (round(float(lon), 9), round(float(lat), 9))
+    cache = getattr(odr_map, "_web_xy_cache", None)
+    if cache is None:
+        cache = {}
+        try:
+            setattr(odr_map, "_web_xy_cache", cache)
+        except Exception:
+            cache = None
+    if cache is not None and key in cache:
+        return cache[key]
     x, y = odr_map.convertLonLat2XY(lon, lat)
-    return (float(x), float(y))
+    result = (float(x), float(y))
+    if cache is not None:
+        cache[key] = result
+    return result
 
 
 def _geometry_has_finite_coordinates(geometry: dict[str, Any] | None) -> bool:
@@ -571,6 +598,117 @@ def _set_plan_view_to_lines(road_node: ET.Element, xy: list[tuple[float, float]]
     road_node.set("length", f"{cumulative_s:.8f}")
 
 
+def _translate_plan_view(road_node: ET.Element, dx: float, dy: float) -> None:
+    """Translate an existing road ``planView`` while preserving geometry types."""
+    if abs(dx) <= 1e-9 and abs(dy) <= 1e-9:
+        return
+    for geom in road_node.findall("./planView/geometry"):
+        geom.set("x", _fmt(_float(geom, "x", 0.0) + dx))
+        geom.set("y", _fmt(_float(geom, "y", 0.0) + dy))
+
+
+def _mean_xy(points: list[tuple[float, float]]) -> tuple[float, float] | None:
+    """Return the centroid of a list of XY points."""
+    if not points:
+        return None
+    return (
+        sum(point[0] for point in points) / len(points),
+        sum(point[1] for point in points) / len(points),
+    )
+
+
+def _lane_mesh_centerline_xy(road: Any, lane: Any) -> list[tuple[float, float]]:
+    """Return the current lane centerline from the generated lane mesh."""
+    mesh = road.get_lane_mesh(lane, 2.0)
+    centerline: list[tuple[float, float]] = []
+    for outer, inner in zip(mesh.vertices[0::2], mesh.vertices[1::2]):
+        centerline.append(((outer[0] + inner[0]) * 0.5, (outer[1] + inner[1]) * 0.5))
+    return centerline
+
+
+def _lane_polygon_centerline_lon_lat(feature: dict[str, Any]) -> list[tuple[float, float]]:
+    """Extract the browser-edited lane centerline from a lane polygon."""
+    geometry = feature.get("geometry") or {}
+    if geometry.get("type") == "LineString":
+        return [
+            (float(coord[0]), float(coord[1]))
+            for coord in geometry.get("coordinates") or []
+            if len(coord) >= 2
+        ]
+    if geometry.get("type") != "Polygon":
+        return []
+    rings = geometry.get("coordinates") or []
+    ring = rings[0] if rings else []
+    points = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    if len(points) < 4:
+        return []
+    half = len(points) // 2
+    outer = points[:half]
+    inner = list(reversed(points[half:]))
+    centerline: list[tuple[float, float]] = []
+    for outer_pt, inner_pt in zip(outer, inner):
+        if len(outer_pt) < 2 or len(inner_pt) < 2:
+            continue
+        centerline.append(
+            (
+                (float(outer_pt[0]) + float(inner_pt[0])) * 0.5,
+                (float(outer_pt[1]) + float(inner_pt[1])) * 0.5,
+            )
+        )
+    return centerline
+
+
+def _find_lane_for_feature(odr_map: Any, feature: dict[str, Any]) -> tuple[Any, Any] | None:
+    """Find the loaded pyopendrive road and lane for a browser lane feature."""
+    props = feature.get("properties") or {}
+    road_id = str(props.get("road_id") or "")
+    if not road_id:
+        return None
+    try:
+        road = odr_map.getRoad(road_id)
+    except Exception:
+        return None
+    try:
+        lane_id = int(float(props.get("lane_id") or 0))
+        section_s0 = float(props.get("lanesection_s0") or 0.0)
+    except (TypeError, ValueError):
+        return None
+    if lane_id == 0:
+        return None
+    sections = road.get_lanesections()
+    if not sections:
+        return None
+    section = min(sections, key=lambda item: abs(float(getattr(item, "s0", 0.0)) - section_s0))
+    try:
+        lane = section.get_lane(lane_id)
+    except Exception:
+        return None
+    return road, lane
+
+
+def _lane_translation_delta_xy(odr_map: Any, feature: dict[str, Any]) -> tuple[str, float, float] | None:
+    """Measure how far a dragged lane moved so its road can be saved."""
+    if not (feature.get("geometry_edited") or (feature.get("properties") or {}).get("geometry_edited")):
+        return None
+    found = _find_lane_for_feature(odr_map, feature)
+    if found is None:
+        return None
+    road, lane = found
+    original_center = _mean_xy(_lane_mesh_centerline_xy(road, lane))
+    edited_centerline = [
+        _as_xy(odr_map, lon, lat)
+        for lon, lat in _lane_polygon_centerline_lon_lat(feature)
+    ]
+    edited_center = _mean_xy(edited_centerline)
+    if original_center is None or edited_center is None:
+        return None
+    dx = edited_center[0] - original_center[0]
+    dy = edited_center[1] - original_center[1]
+    if not math.isfinite(dx) or not math.isfinite(dy):
+        return None
+    return str(road.id), dx, dy
+
+
 def _new_road_node(road_id: str, name: str, xy: list[tuple[float, float]]) -> ET.Element:
     """Create a minimal road node when the browser adds a new editable road."""
     road_node = ET.Element(
@@ -675,16 +813,18 @@ def _set_lane_width(lane_node: ET.Element, width: Any) -> None:
 def _apply_lane_geojson_edits(odr_map: Any, lane_geojson: dict[str, Any]) -> None:
     """Apply lane attributes and lane network links from browser GeoJSON.
 
-    The browser edits lane polygons visually, but OpenDRIVE lane geometry is
-    defined by road references, lane sections, offsets, and width polynomials.
-    Rebuilding that full model from a dragged polygon would be unsafe here, so
-    this routine updates the explicit lane records, ids, types, and links that
-    the current editor exposes.
+    OpenDRIVE does not store lane polygons directly.  Lane positions are
+    derived from the owning road ``planView`` plus lane width/offset records.
+    For normal edits this routine updates the explicit lane records, ids,
+    types, and links.  For a browser-dragged lane, it also translates the
+    owning road ``planView`` by the measured lane movement so the saved file
+    reopens at the dragged location.
     """
     features = lane_geojson.get("features") or []
 
     root = odr_map.root
     lane_keys: set[tuple[str, float, int]] = set()
+    road_translation_deltas: dict[str, list[tuple[float, float]]] = {}
     for feature in features:
         props = feature.get("properties") or {}
         if props.get("feature_type") != "lane":
@@ -729,6 +869,18 @@ def _apply_lane_geojson_edits(odr_map: Any, lane_geojson: dict[str, Any]) -> Non
             _set_lane_link(lane_node, "successor", props.get("successor"))
         if "width" in props:
             _set_lane_width(lane_node, props.get("width"))
+        lane_delta = _lane_translation_delta_xy(odr_map, feature)
+        if lane_delta is not None:
+            delta_road_id, dx, dy = lane_delta
+            road_translation_deltas.setdefault(delta_road_id, []).append((dx, dy))
+
+    for road_id, deltas in road_translation_deltas.items():
+        road_node = root.find(f"./road[@id='{road_id}']")
+        if road_node is None or not deltas:
+            continue
+        dx = sum(delta[0] for delta in deltas) / len(deltas)
+        dy = sum(delta[1] for delta in deltas) / len(deltas)
+        _translate_plan_view(road_node, dx, dy)
 
     for road_node in root.findall("road"):
         road_id = road_node.get("id", "")
@@ -936,14 +1088,19 @@ class _ViewerState:
         self.current_map: Any | None = None
         self.browser_sessions: set[str] = set()
         self.shutdown_timer: threading.Timer | None = None
+        self.last_load_seconds: float | None = None
         if default_xodr is not None and default_xodr.exists():
             self.load_path(default_xodr)
 
     def load_path(self, xodr_path: Path) -> dict[str, Any]:
         """Load an OpenDRIVE file from disk and return browser-ready GeoJSON."""
+        start = time.perf_counter()
         self.current_file = Path(xodr_path)
         self.current_map = readXodr(self.current_file)
-        return self.as_response()
+        response = self.as_response()
+        self.last_load_seconds = time.perf_counter() - start
+        response["server_load_seconds"] = self.last_load_seconds
+        return response
 
     def load_text(self, file_text: str, filename: str = "network.xodr") -> dict[str, Any]:
         """Load an uploaded browser file through a temporary local copy."""
@@ -955,8 +1112,13 @@ class _ViewerState:
         """Return the full payload needed by the MapLibre page."""
         if self.current_map is None:
             raise RuntimeError("No OpenDRIVE map is loaded.")
+        file_size = 0
+        if self.current_file is not None and self.current_file.exists():
+            file_size = self.current_file.stat().st_size
         return {
             "filename": self.current_file.name if self.current_file else "network.xodr",
+            "file_size_bytes": file_size,
+            "server_load_seconds": self.last_load_seconds,
             "geojson": _map_to_geojson(self.current_map),
             "lane_geojson": _map_to_lane_geojson(self.current_map),
             "signal_geojson": _map_to_signal_geojson(self.current_map),

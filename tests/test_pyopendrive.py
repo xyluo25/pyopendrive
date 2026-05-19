@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import math
 from pathlib import Path
 import shutil
@@ -154,6 +155,26 @@ def elems_by_id(root: ET.Element, tag: str) -> dict[str, ET.Element]:
   return elems
 
 
+def lane_polygon_center(feature: dict) -> list[float]:
+    ring = feature["geometry"]["coordinates"][0]
+    points = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    half = len(points) // 2
+    outer = points[:half]
+    inner = list(reversed(points[half:]))
+    return [
+        (sum(point[0] for point in outer) + sum(point[0] for point in inner)) / (2 * len(outer)),
+        (sum(point[1] for point in outer) + sum(point[1] for point in inner)) / (2 * len(outer)),
+    ]
+
+
+def meters_between_lonlat(a: list[float], b: list[float]) -> float:
+    lat = (a[1] + b[1]) * 0.5
+    return math.hypot(
+        (a[0] - b[0]) * 111_320 * math.cos(math.radians(lat)),
+        (a[1] - b[1]) * 110_540,
+    )
+
+
 def test_open_drive_map_can_be_built_empty_with_add_methods() -> None:
     odr_map = odr.OpenDriveMap()
     road = odr.xodr.Road("manual_road", 10.0, "-1", "manual")
@@ -260,6 +281,45 @@ def test_open_drive_map_save_xodr_preserves_loaded_xml(
     reloaded = odr.readXodr(saved)
     assert len(reloaded.getRoads()) == len(synthetic_map.getRoads())
     assert len(reloaded.getJunctions()) == len(synthetic_map.getJunctions())
+
+
+def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
+    from pyopendrive.web._editor import _ViewerState
+
+    state = _ViewerState(synthetic_file)
+    payload = state.as_response()
+    lane = deepcopy(payload["lane_geojson"]["features"][0])
+    original_center = lane_polygon_center(lane)
+
+    for ring in lane["geometry"]["coordinates"]:
+        for coord in ring:
+            coord[0] += 0.00004
+            coord[1] += 0.00002
+    lane["geometry_edited"] = True
+    edited_center = lane_polygon_center(lane)
+
+    for index, feature in enumerate(payload["lane_geojson"]["features"]):
+        if feature["id"] == lane["id"]:
+            payload["lane_geojson"]["features"][index] = lane
+            break
+
+    saved = state.save_geojson(
+        payload["geojson"],
+        payload["lane_geojson"],
+        payload["signal_geojson"],
+    )
+    reloaded_lane = next(
+        feature
+        for feature in saved["lane_geojson"]["features"]
+        if feature["id"] == lane["id"]
+    )
+    reloaded_center = lane_polygon_center(reloaded_lane)
+
+    assert meters_between_lonlat(original_center, reloaded_center) > 1.0
+    assert meters_between_lonlat(edited_center, reloaded_center) < meters_between_lonlat(
+        original_center,
+        edited_center,
+    )
 
 
 def test_lane_queries_roadmarks_and_surface_points(

@@ -13,6 +13,39 @@ body {
   inset: 0;
 }
 
+.fullscreen {
+  position: absolute;
+  inset: 0;
+}
+
+.centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#loading_screen {
+  z-index: 10000;
+  background: rgba(242, 244, 247, 0.3);
+}
+
+#loading_screen.loading-hidden {
+  display: none;
+}
+
+#loading_screen_msg {
+  margin: 0;
+  color: #1f2933;
+  font-size: 1.5em;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+#loading_screen_msg .fa {
+  margin-right: 0.35em;
+}
+
 #toolbar {
   position: absolute;
   top: 12px;
