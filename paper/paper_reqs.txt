@@ -1,0 +1,220 @@
+Paper Format
+
+Length: The length of each paper, including the title page, structured abstract, text, acknowledgments, references, figures, and tables, must not exceed 20 pages. Papers not meeting this requirement may be withdrawn from the review process at any time. The paper submission system, Editorial Manager, will generate its own cover page, which does not count toward the page limit.
+Page size and margins: 8.5x11 inch page with 1 inch margins
+Font: Times New Roman font, 10 pt size
+Spacing: single spaced
+Columns: single column
+Line numbering: line numbering is required with line numbers restarting at 1 on each page
+Page numbers: pages must be numbered with page numbers centered at the bottom of each page
+Tables and figures should be embedded in the text, near the text that discusses the item
+Supplemental Material/Appendices are not permitted in TRB Annual Meeting papers.
+References should be called out (Author, Year)
+File Format: PDF (Editorial Manager will not accept other formats.)
+
+
+Front Matter
+
+Title page with: paper title; (co)author names(s), job titles, institutional affiliations, and email addresses; and total number of pages. Note: you will also be required to enter this information into Editorial Manager when you submit. ORCiD numbers are optional, but strongly encouraged.
+The title should have the first letter of each word capitalized, except for conjunctions, prepositions, and articles.
+Structured abstracts must meet length and content requirements (see Structured Abstract Requirements). The structured abstract replaces the traditional (unstructured) abstract.
+ Structured Abstract
+
+To facilitate the initial screening of your paper and direct papers more quickly to appropriate reviewers, manuscripts must include a structured abstract that clearly and concisely summarizes the objectives, methodology, principal findings, and contribution of the research. The structured abstract also facilitates Annual Meeting attendees’ ability to quickly identify papers of interest to them. The structured abstract replaces the traditional (unstructured) abstract. Structured abstracts must conform to the requirements below. An example of a structure abstract can be found in the sample papers.
+
+1. Length and Format
+
+The structured abstract must be 300 words maximum, on a separate page immediately following the cover page with no other content.
+The abstract must be organized under the following required headings:
+Objectives
+Methods
+Findings
+Novelty
+Practical Applications
+Headings must appear in bold and in the order listed above. The text for each section should begin immediately after the heading, forming a single paragraph for each section.
+Do not include figures, tables, equations, or undefined acronyms.
+
+
+Objectives (approximately 2-3 sentences)
+
+The Objectives section must:
+
+Define the specific transportation problem and context.
+State the objective of the work described in the paper.
+Clarify the specific need being addressed.
+This section should not include general background information or literature review summaries.
+
+Methods (approximately 3-4 sentences)
+
+The Methods section must:
+
+Describe the study design with sufficient detail for a reader to understand the technical rigor of the study.
+Include data type(s) and source(s) and the scope and scale of the work (size, time frame, geography).
+Explain the analytical approach.
+Findings (approximately 2-3 sentences)
+
+The Findings section must:
+
+Present the most important results of the work.
+Indicate whether these results were significant or not. This could be through statistical tests, sensitivity tests, validation, etc., as well as through rigorous qualitative analysis.
+Novelty (approximately 1-2 sentences)
+
+The Novelty section must clearly state the novel contribution of the paper to transportation.
+Practical Applications (approximately 1-2 sentences)
+
+The Practical Applications section must:
+
+Explain how the results inform transportation practice, and/or policy. Be specific.
+Identify potential implementation considerations or operational contexts.
+3. Writing Standards
+
+Authors must ensure that:
+
+The structured abstract can stand on its own.
+Acronyms are defined upon first use.
+
+
+Criteria for Desk Rejection
+
+Papers will be desk rejected if they do not meet one or more of TRB’s requirements, including requirements related to:
+
+General Requirements
+Paper Format
+Front Matter
+Structured Abstract
+In addition, papers may be desk rejected for other reasons, including:
+
+Fragmented or Duplicate
+Redundant topic
+Inappropriate or offensive language
+Endorsement or promotion of a commercial product
+Simultaneous submission of the paper to another journal (if submitted for Presentation and Publication)
+Not clearly within the scope or current focus of TRB’s standing technical committees
+Lacks novelty, contribution, or practical application
+Structured abstract does not clearly and concisely summarize the objectives, methodology, principal findings, and contribution of the research.
+Reviews not submitted within the time frame required to meet Annual Meeting programming deadlines. While TRB makes every effort to find appropriate and available reviewers for papers, the tight time frame for review and our reliance on volunteer reviewers can occasionally lead to a paper not being reviewed or reviews not being received by the deadline.
+Reference Guidelines (Chicago Author–Date Style)
+
+The reference list should include only sources cited in the text and should be arranged alphabetically by the first author’s last name (not numbered).
+
+In-text citations should follow the author–date format:
+
+Single author: (Smith 2020)
+Two authors: (Smith and Jones 2020)
+Three or more authors: (Smith et al. 2020)
+Specific page(s): (Smith 2020, 25–27)
+Single author, multiple sources: (Smith 2018, 2020)
+Single author, multiple sources in the same year: (Smith 2020a, 2020b)
+Multiple sources with different authors: (Smith 2020; Jones 2019)
+Do not use superscripts or numbered citations.
+
+Do not include personal communications or similar material in the reference list. Instead, cite them in the text only:
+
+(J. Smith, personal communication, March 5, 2020)
+ Reference List Formatting
+
+Entries should be listed alphabetically by the first author’s last name
+Provide full author names (first and last names) rather than initials
+For multiple authors, list the first author with the last name first (inverted order), followed by subsequent authors in normal order (first name followed by last name)
+Use sentence case for article and chapter titles; headline-style capitalization for journal and book titles
+Include DOIs when available (preferred over URLs)
+Use hanging indentation
+
+Examples by Source Type
+
+TRR Journal Articles
+
+Dewan, Sameer A., and Robert E. Smith. 2018. “Creating Asset Management Reports from a Local Agency Pavement Management System.” Transportation Research Record: Journal of the Transportation Research Board Volume: page range or article number. https://doi.org/10.3141/1853-02
+
+TRB Presentation Papers
+
+Ghiasi, Alireza, Jiaqi Ma, Feng Zhou, and Xiaopeng Li. 2017. “Speed Harmonization Algorithm Using Connected Autonomous Vehicles.” Paper presented at the 96th Annual Meeting of the Transportation Research Board, Washington, DC.
+
+Note: If the paper was later published in Transportation Research Record, cite the published version instead.
+
+Other Journal Articles
+
+Dawley, Christopher B., Brian L. Hogenwiede, and Kevin O. Anderson. 2018. “Mitigation of Instability Rutting of Asphalt Concrete Pavements in Canada.” Journal of the Association of Asphalt Paving Technologists 59: 481–508.
+
+Sansalone, Mary, Jian M. Lin, and William B. Streett. 2018. “Determining the Depths of Surface-Opening Cracks Using Impact-Generated Stress Waves and Time-of-Flight Techniques.” ACI Materials Journal 95: 168–177.
+
+TRB Publications
+
+Morcous, George, Kejin Wang, Peter C. Taylor, and Surendra P. Shah. 2016. NCHRP Report 819: Self-Consolidating Concrete for Cast-in-Place Bridge Components. Transportation Research Board. https://doi.org/10.17226/23626
+
+Books
+
+Newland, David E. 1998. Random Vibrations: Spectral and Wavelet Analysis. John Wiley & Sons.
+
+Chapter in a Book
+
+Shunk, Gordon A. 1992. “Urban Transportation Systems.” In Transportation Planning Handbook, edited by John D. Edwards Jr. Prentice Hall.
+
+Government Reports
+
+Von Quintus, Harold L., and Albert L. Simpson. 2002. Documentation of the Back Calculation of Layer Parameters for LTPP Test Sections. Publication FHWA-RD-01-113. Washington, DC: Federal Highway Administration, U.S. Department of Transportation.
+
+Websites
+
+References to websites should include author (individual or organization), title of page, date (if available), and URL. Access dates are optional but may be included if content is likely to change.
+
+State and Local Policy Program. 2008. “Value Pricing.” Hubert H. Humphrey Institute of Public Affairs, University of Minnesota. https://www.___.
+
+Federal Highway Administration. 2003. Guide to Developing Performance-Related Specifications, Vol. III, Appendix C. https://www.___.
+
+Unpublished Papers / Conference Presentations
+
+Corbett, James J. 2018. “Toward Environmental Stewardship: Charting the Course for Marine Transportation.” Paper presented at the 83rd Annual Meeting of the Transportation Research Board, Washington, DC.
+
+
+
+Policy on Artificial Intelligence (AI)
+
+The TRB Annual Meeting policy on AI is based on guidance used by the Transportation Research Record and adapted from the Sage Publications Artificial Intelligence Policy
+
+Authors may use AI tools in the preparation of their manuscripts, provided this is done responsibly and in accordance with ethical research standards. Use of AI must be disclosed during the submission process and, where appropriate, within the manuscript itself. Disclosure requirements are outlined below.
+
+Assistive AI (no disclosure required)
+
+These tools identify issues related to spelling, grammar, punctuation, and basic sentence structure. Authors may use assistive AI tools (e.g., Grammarly, Microsoft Editor) solely to improve their manuscript in this limited capacity without disclosure.
+
+Use of tools such as ChatGPT to improve clarity or rewrite text should be treated as generative AI and must be disclosed, even if the intent is editing, as these tools produce new phrasing rather than simply correcting errors. Some tools (e.g., Grammarly) include both assistive and generative features. Authors should disclose use as appropriate to the function applied. If there is any uncertainty, authors are encouraged to include a disclosure.
+
+Generative AI (disclosure required)
+
+Generative AI tools produce or substantially modify content, including text, references, images, code, or other outputs that may influence the research methodology, analysis, results, or conclusions. Examples include tools such as ChatGPT, Claude, Google Gemini, Microsoft Copilot, GitHub Copilot, and image-generation tools such as DALL·E or Midjourney. Authors must disclose any such use at submission and describe which tool was used and for what purpose. Disclosure should also be included in the manuscript (e.g., in the methods or acknowledgements), where appropriate.
+
+Authors should cite original sources rather than AI tools as primary references. AI tools may be cited when they are used to create outputs such as images or visualizations as representative contributions.
+
+As generative AI tools may produce inaccurate or fabricated content (e.g., incorrect facts or non-existent references), authors are responsible for verifying the accuracy of all outputs and checking original sources.
+
+Examples of generative AI use that require disclosure include:
+
+Assistance with literature review or compilation of relevant sources
+Translation of materials as part of the research process
+Use of AI-generated code or software (e.g., GitHub Copilot) to support research activities
+Assistance with data visualization
+Generation of illustrations or infographics (e.g., DALL·E, Midjourney)
+Code that has been enhanced or checked using AI tools
+Assistance with compiling or formatting references\
+Advanced language editing or rewriting of text (e.g., using tools such as ChatGPT, Claude, or Microsoft Copilot to substantially revise, rephrase, or restructure sections of a manuscript)
+Prohibited use of AI
+
+AI tools must not be used in ways that compromise the integrity, validity, or originality of the research or review process. Inappropriate or undisclosed use of AI may result in rejection of the submission or other editorial action.
+
+AI must not be used to generate, alter, or present content in a misleading or unethical manner, or to replace essential elements of the research process that require human judgement and accountability.
+
+Examples of prohibited use include:
+
+Generation of false, misleading, or inaccurate content, data, or results
+Fabrication of references or citation of non-existent sources
+Use of AI to generate data, analyses, or findings without appropriate methodological transparency
+Conducting interviews or generating participant data using AI in place of human subjects
+Use of AI to analyze or interpret qualitative data without appropriate validation
+Plagiarism or failure to appropriately attribute sources
+Presentation of AI-generated images or outputs as original research data or findings
+Use of AI tools to write peer review reports or editorial decisions, or otherwise breach confidentiality in the review process
+ AI bots such as ChatGPT should not be listed as an author on your submission.
+Undisclosed use of generative AI will be treated as a breach of this policy. All authors and volunteers are expected to adhere to these standards, and concerns about potential misuse should be raised with the journal.
+
+Reviewers are not permitted to use ChatGPT or other generative AI tools to assist in the review of manuscripts or to upload manuscript content or proprietary information belonging to authors into such tools. Assistive AI may be used in a limited capacity to improve spelling, grammar, or basic clarity of the reviewer’s own writing, provided this use is consistent with the Assistive AI guidance above. If reviewers are found to have used generative AI tools in the review process, the review will be discarded, and they will not be invited to review manuscripts in the future.
