@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-05-29 09:59:31 by Eclipse SUMO GUI Version 1.21.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="C:\Users\xh8\ORNL_Work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.net.xml"/>
+        <route-files value="C:\Users\xh8\ORNL_Work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.rou.xml"/>
+        <additional-files value="C:\Users\xh8\ORNL_Work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.add.xml"/>
+    </input>
+
+    <output>
+        <edgedata-output value="C:\Users\xh8\ORNL_Work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\EdgeData.xml"/>
+    </output>
+
+    <time>
+        <begin value="27000.0"/>
+        <end value="34200.0"/>
+        <step-length value="1"/>
+    </time>
+
+</sumoConfiguration>
+-->
+
+<meandata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/meandata_file.xsd">
+</meandata>

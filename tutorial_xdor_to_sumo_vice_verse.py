@@ -11,8 +11,8 @@ import pyopendrive as odr
 
 if __name__ == "__main__":
 
-    path_xodr = "./datasets/xdor_sumo/chatt.xodr"
-    path_sumo = "./datasets/xdor_sumo/chatt.net.xml"
+    path_xodr = "./datasets/tempe_net/tempe.xodr"
+    path_sumo = "./datasets/tempe_net/tempe.net.xml"
 
     # Load the OpenDRIVE file
     net_xdor = odr.readXodr(path_xodr)
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     odr.xodr_from_net_xml(
         net_file=Path(path_sumo).absolute(),
-        xodr_file="./datasets/xdor_sumo/chatt_1.xodr")
+        xodr_file=path_xodr)
 
     odr.xodr_from_net_xml(
         net = net_sumo,
