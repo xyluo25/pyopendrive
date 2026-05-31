@@ -4,7 +4,7 @@
     <input>
         <net-file value="tempe.net.xml"/>
         <route-files value="tempe.rou.xml"/>
-        <additional-files value="tempe.add.xml"/>
+        <!-- <additional-files value="tempe.add.xml"/> -->
     </input>
     <output>
         <edgedata-output value="EdgeData.xml"/>

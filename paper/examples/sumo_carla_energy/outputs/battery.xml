@@ -1,8 +1,6 @@
-<!--
-Filename: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs\battery.xml
-Path: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs
-Created Date: Friday, May 29th 2026, 10:17:29 am
-Author: Mr. Xiangyong Luo
-
-Copyright (c) 2026 Mr. Xiangyong Luo
--->
+<?xml version="1.0" encoding="UTF-8"?>
+<battery-export>
+  <timestep time="27000.00">
+    <vehicle id="veh_ev_0" actualBatteryCapacity="63500" totalEnergyConsumed="420.5" totalEnergyRegenerated="25.2"/>
+  </timestep>
+</battery-export>

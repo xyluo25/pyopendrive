@@ -1,0 +1,2 @@
+scenario_id,carla_available,avg_speed_mps,max_speed_mps,avg_accel_mps2,max_accel_mps2,avg_abs_accel_mps2,avg_jerk_mps3,stop_episode_count,vehicle_count,telemetry_duration_s
+sample,True,1.5,4.0,0.6,1.2,0.6,8.8,2,2,0.1

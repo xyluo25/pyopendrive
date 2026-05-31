@@ -1,8 +1,10 @@
-<!--
-Filename: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs\tripinfo.xml
-Path: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs
-Created Date: Friday, May 29th 2026, 10:17:15 am
-Author: Mr. Xiangyong Luo
-
-Copyright (c) 2026 Mr. Xiangyong Luo
--->
+<?xml version="1.0" encoding="UTF-8"?>
+<tripinfos>
+  <tripinfo id="veh_ice_0" depart="27000.00" arrival="27300.00" duration="300.00" routeLength="2500.00" waitingTime="20.00" waitingCount="4" timeLoss="50.00" vtype="ice_passenger">
+    <emissions CO2_abs="320000" CO_abs="2400" HC_abs="120" NOx_abs="310" PMx_abs="14" fuel_abs="103000" electricity_abs="0"/>
+  </tripinfo>
+  <tripinfo id="veh_ev_0" depart="27010.00" arrival="27335.00" duration="325.00" routeLength="2550.00" waitingTime="25.00" waitingCount="5" timeLoss="60.00" vtype="ev_passenger">
+    <emissions CO2_abs="0" CO_abs="0" HC_abs="0" NOx_abs="0" PMx_abs="0" fuel_abs="0" electricity_abs="420.5"/>
+    <battery actualBatteryCapacity="63500" totalEnergyConsumed="420.5" totalEnergyRegenerated="25.2" depleted="0"/>
+  </tripinfo>
+</tripinfos>

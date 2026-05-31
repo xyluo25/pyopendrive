@@ -1,14 +1,24 @@
-# -*- coding:utf-8 -*-
-##############################################################
-# Created Date: Friday, May 29th 2026
-# Contact Info: luoxiangyong01@gmail.com
-# Author/Copyright: Mr. Xiangyong Luo
-##############################################################
+"""Backward-compatible wrappers for CARLA telemetry analysis."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from .analysis import read_carla_telemetry, summarize_carla_telemetry
 
 
-def analyze_carla_telemetry():
-    """
-    Analyze the telemetry data collected from CARLA during the co-simulation.
-    This function can be used to extract insights on vehicle behavior, energy consumption, and other relevant metrics.
-    """
-    return None
+def analyze_carla_telemetry(
+    telemetry_path: str | Path,
+    *,
+    scenario_id: str = "scenario",
+) -> dict[str, object]:
+    """Read and summarize a CARLA telemetry CSV file."""
+
+    return summarize_carla_telemetry(read_carla_telemetry(telemetry_path), scenario_id)
+
+
+__all__ = [
+    "analyze_carla_telemetry",
+    "read_carla_telemetry",
+    "summarize_carla_telemetry",
+]

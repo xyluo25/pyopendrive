@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<additional>
+  <vType id="ice_passenger" vClass="passenger" accel="2.6" decel="4.5" sigma="0.5" length="5.0" maxSpeed="25.0" emissionClass="HBEFA3/PC_G_EU4" />
+  <vType id="ev_passenger" vClass="passenger" accel="2.6" decel="4.5" sigma="0.5" length="5.0" maxSpeed="25.0" emissionClass="Energy/unknown" mass="1830">
+    <param key="has.battery.device" value="true" />
+    <param key="device.battery.capacity" value="64000" />
+    <param key="maximumPower" value="150000" />
+    <param key="frontSurfaceArea" value="2.6" />
+    <param key="airDragCoefficient" value="0.35" />
+    <param key="rotatingMass" value="40" />
+    <param key="rollDragCoefficient" value="0.01" />
+    <param key="constantPowerIntake" value="100" />
+    <param key="propulsionEfficiency" value="0.98" />
+    <param key="recuperationEfficiency" value="0.96" />
+  </vType>
+  <vType id="ego_passenger" vClass="passenger" accel="3.0" decel="4.5" sigma="0.0" length="5.0" maxSpeed="25.0" color="0,0,255" />
+</additional>

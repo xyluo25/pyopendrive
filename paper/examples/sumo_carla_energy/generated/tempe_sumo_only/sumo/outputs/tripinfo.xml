@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-05-31 04:52:42 by Eclipse SUMO GUI Version 1.21.0
+<sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\network.net.xml"/>
+        <route-files value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\routes.rou.xml"/>
+        <additional-files value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\vtypes.add.xml"/>
+    </input>
+
+    <output>
+        <summary-output value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\outputs/summary.xml"/>
+        <tripinfo-output value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\outputs/tripinfo.xml"/>
+        <statistic-output value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\sumo_carla_energy\generated\tempe_sumo_only\sumo\outputs/statistics.xml"/>
+    </output>
+
+    <time>
+        <begin value="27000"/>
+        <end value="27600"/>
+        <step-length value="1.0"/>
+    </time>
+
+    <processing>
+        <ignore-route-errors value="true"/>
+        <time-to-teleport value="-1"/>
+    </processing>
+
+</sumoConfiguration>
+-->
+
+<tripinfos xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/tripinfo_file.xsd">
+</tripinfos>

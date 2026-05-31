@@ -1,0 +1,23 @@
+{
+  "project_dir": null,
+  "tripinfo_path": "paper\\examples\\sumo_carla_energy\\outputs\\tripinfo.xml",
+  "carla_telemetry_path": "paper\\examples\\sumo_carla_energy\\outputs\\carla_telemetry.csv",
+  "scenario_id": "sample",
+  "carla_analysis_status": "analyzed",
+  "ego_filter": {
+    "enabled": false,
+    "analyze_only_ego": false,
+    "vehicle_ids": [],
+    "carla_actor_ids": [],
+    "carla_role_names": [],
+    "carla_type_ids": []
+  },
+  "figure_generation_status": "generated",
+  "figures": {
+    "figure_mobility_energy_summary": "paper\\examples\\sumo_carla_energy\\outputs\\figures\\mobility_energy_summary.png",
+    "figure_travel_time_distribution": "paper\\examples\\sumo_carla_energy\\outputs\\figures\\travel_time_distribution.png",
+    "figure_route_length_vs_travel_time": "paper\\examples\\sumo_carla_energy\\outputs\\figures\\route_length_vs_travel_time.png",
+    "figure_carla_speed_profile": "paper\\examples\\sumo_carla_energy\\outputs\\figures\\carla_speed_profile.png",
+    "figure_speed_acceleration_profile": "paper\\examples\\sumo_carla_energy\\outputs\\figures\\speed_acceleration_profile.png"
+  }
+}

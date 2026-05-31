@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<configuration>
+  <input>
+    <net-file value="network.net.xml" />
+    <route-files value="routes.rou.xml" />
+    <additional-files value="vtypes.add.xml" />
+  </input>
+  <time>
+    <begin value="27000" />
+    <end value="27600" />
+    <step-length value="1.0" />
+  </time>
+  <output>
+    <tripinfo-output value="outputs/tripinfo.xml" />
+    <summary-output value="outputs/summary.xml" />
+    <statistic-output value="outputs/statistics.xml" />
+  </output>
+  <processing>
+    <ignore-route-errors value="true" />
+    <time-to-teleport value="-1" />
+  </processing>
+</configuration>

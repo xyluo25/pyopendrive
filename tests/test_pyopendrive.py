@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from copy import deepcopy
 import math
 from pathlib import Path
@@ -10,6 +11,7 @@ import pytest
 
 # Add system path for imports from pyopendrive package
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pyopendrive as odr
@@ -142,17 +144,17 @@ def assert_vec_finite(vec: tuple[float, ...]) -> None:
 
 
 def elems_by_id(root: ET.Element, tag: str) -> dict[str, ET.Element]:
-  """Return a dict mapping element id to element for all elements matching tag.
+    """Return a dict mapping element id to element for all elements matching tag.
 
-  Elements without an 'id' attribute are skipped so the returned dict has
-  only string keys (matching the declared return type).
-  """
-  elems: dict[str, ET.Element] = {}
-  for e in root.findall(tag):
-    _id = e.get("id")
-    if _id is not None:
-      elems[_id] = e
-  return elems
+    Elements without an 'id' attribute are skipped so the returned dict has
+    only string keys (matching the declared return type).
+    """
+    elems: dict[str, ET.Element] = {}
+    for e in root.findall(tag):
+        _id = e.get("id")
+        if _id is not None:
+            elems[_id] = e
+    return elems
 
 
 def lane_polygon_center(feature: dict) -> list[float]:
@@ -162,8 +164,10 @@ def lane_polygon_center(feature: dict) -> list[float]:
     outer = points[:half]
     inner = list(reversed(points[half:]))
     return [
-        (sum(point[0] for point in outer) + sum(point[0] for point in inner)) / (2 * len(outer)),
-        (sum(point[1] for point in outer) + sum(point[1] for point in inner)) / (2 * len(outer)),
+        (sum(point[0] for point in outer) + sum(point[0] for point in inner))
+        / (2 * len(outer)),
+        (sum(point[1] for point in outer) + sum(point[1] for point in inner))
+        / (2 * len(outer)),
     ]
 
 
@@ -231,7 +235,9 @@ def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) ->
     assert len(synthetic_map.getLanes()) == 5
 
 
-def test_open_drive_map_lon_lat_conversion_without_header_offset(tmp_path: Path) -> None:
+def test_open_drive_map_lon_lat_conversion_without_header_offset(
+    tmp_path: Path,
+) -> None:
     xodr = tmp_path / "no_offset.xodr"
     proj4 = "+proj=tmerc +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +geoidgrids=egm96_15.gtx +vunits=m +no_defs"
     xodr.write_text(
@@ -262,6 +268,228 @@ def test_open_drive_map_lon_lat_conversion_without_header_offset(tmp_path: Path)
     assert lat == pytest.approx(0.0, abs=1e-9)
     assert x == pytest.approx(0.0, abs=1e-6)
     assert y == pytest.approx(0.0, abs=1e-6)
+
+
+def test_ego_select_existing_mode_highlights_selected_vehicle(tmp_path: Path) -> None:
+    from pyopendrive.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyopendrive.sim.sumo_builder import apply_ego_vehicle_config
+
+    route_file = tmp_path / "routes.rou.xml"
+    route_file.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<routes>\n"
+        '  <vehicle id="veh_0" depart="0" type="car"/>\n'
+        '  <vehicle id="veh_1" depart="0" type="car"/>\n'
+        "</routes>\n",
+        encoding="utf-8",
+    )
+    scenario = ScenarioConfig(
+        ego=EgoVehicleConfig(
+            enabled=True,
+            mode="select_existing",
+            highlight_color="255,0,0",
+            vehicle_ids=["veh_1"],
+            vehicle_attributes={"departSpeed": "max"},
+        )
+    )
+
+    ego_ids = apply_ego_vehicle_config(route_file, scenario)
+    root = ET.parse(route_file).getroot()
+    vehicles = elems_by_id(root, "vehicle")
+
+    assert ego_ids == ["veh_1"]
+    assert vehicles["veh_0"].get("type") == "car"
+    assert vehicles["veh_1"].get("type") == "ego_passenger"
+    assert vehicles["veh_1"].get("color") == "255,0,0"
+    assert vehicles["veh_1"].get("departSpeed") == "max"
+
+
+def test_ego_add_mode_supports_od_pairs_and_edge_routes(tmp_path: Path) -> None:
+    from pyopendrive.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyopendrive.sim.sumo_builder import apply_ego_vehicle_config
+
+    route_file = tmp_path / "routes.rou.xml"
+    route_file.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<routes />\n',
+        encoding="utf-8",
+    )
+    scenario = ScenarioConfig(
+        ego=EgoVehicleConfig(
+            enabled=True,
+            mode="add",
+            highlight_color="0,0,255",
+            od_pairs=[
+                {
+                    "id": "ego_od",
+                    "depart": "27000",
+                    "origin_edge": "edge_a",
+                    "destination_edge": "edge_c",
+                }
+            ],
+            route_vehicles=[
+                {
+                    "id": "ego_route",
+                    "depart": "27010",
+                    "edges": ["edge_a", "edge_b", "edge_c"],
+                }
+            ],
+        )
+    )
+
+    ego_ids = apply_ego_vehicle_config(route_file, scenario)
+    root = ET.parse(route_file).getroot()
+    trips = elems_by_id(root, "trip")
+    vehicles = elems_by_id(root, "vehicle")
+
+    assert ego_ids == ["ego_od", "ego_route"]
+    assert trips["ego_od"].get("type") == "ego_passenger"
+    assert trips["ego_od"].get("from") == "edge_a"
+    assert trips["ego_od"].get("to") == "edge_c"
+    assert trips["ego_od"].get("color") == "0,0,255"
+    assert vehicles["ego_route"].get("type") == "ego_passenger"
+    assert vehicles["ego_route"].get("color") == "0,0,255"
+    assert vehicles["ego_route"].find("route").get("edges") == ("edge_a edge_b edge_c")
+
+
+def test_cli_reports_missing_sumo_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyopendrive.sim import cli
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "scenario.sumocfg").write_text(
+        "<configuration />",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "find_sumo_tool", lambda _tool_name: None)
+
+    exit_code = cli.main(["run-sumo", "--project", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "SUMO is missing on this operating system" in captured.err
+    assert "sumo" in captured.err
+    assert "SUMO_HOME" in captured.err
+
+
+def test_cli_reports_missing_carla_python_api(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyopendrive.sim import cli
+
+    carla_dir = tmp_path / "carla"
+    carla_dir.mkdir()
+    (carla_dir / "load_opendrive_world.py").write_text(
+        "print('unused')\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "_python_module_available", lambda _module_name: False)
+
+    exit_code = cli.main(["run-carla", "--project", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "CARLA Python API is missing on this operating system" in captured.err
+    assert "PYTHONPATH" in captured.err
+
+
+def test_analysis_writes_high_resolution_matplotlib_figures(tmp_path: Path) -> None:
+    from pyopendrive.sim.analysis import analyze_project
+
+    tripinfo_path = tmp_path / "tripinfo.xml"
+    tripinfo_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<tripinfos>
+  <tripinfo id="ego_1" depart="0" arrival="12" duration="12" routeLength="120"
+            waitingTime="1" waitingCount="1" timeLoss="2"/>
+  <tripinfo id="ego_2" depart="1" arrival="16" duration="15" routeLength="180"
+            waitingTime="0" waitingCount="0" timeLoss="1"/>
+</tripinfos>
+""",
+        encoding="utf-8",
+    )
+    analysis_dir = tmp_path / "analysis"
+
+    outputs = analyze_project(
+        tripinfo_path=tripinfo_path,
+        out_dir=analysis_dir,
+        scenario_id="figure_check",
+        skip_carla=True,
+    )
+
+    expected_figure_names = [
+        "figure_mobility_energy_summary",
+        "figure_travel_time_distribution",
+        "figure_route_length_vs_travel_time",
+    ]
+    for figure_name in expected_figure_names:
+        figure_path = outputs[figure_name]
+        assert figure_path.exists()
+        assert figure_path.read_bytes().startswith(b"\x89PNG")
+        assert figure_path.stat().st_size > 1000
+
+
+def test_tripinfo_summary_reports_energy_without_pollutant_outputs() -> None:
+    from pyopendrive.sim.analysis import summarize_tripinfo
+
+    rows: list[dict[str, object]] = [
+        {
+            "depart": 0.0,
+            "arrival": 100.0,
+            "duration": 100.0,
+            "routeLength": 1000.0,
+            "emissions_fuel_abs": 1_000_000.0,
+            "emissions_electricity_abs": 1000.0,
+            "battery_totalEnergyConsumed": 2000.0,
+            "battery_totalEnergyRegenerated": 500.0,
+        }
+    ]
+
+    summary = summarize_tripinfo(rows, "energy_check")
+
+    assert "total_co2_mg" not in summary
+    assert "co2_g_per_km" not in summary
+    assert summary["fuel_energy_kwh"] == pytest.approx(44.0 / 3.6)
+    assert summary["electricity_energy_kwh"] == pytest.approx(1.0)
+    assert summary["battery_consumed_kwh"] == pytest.approx(2.0)
+    assert summary["battery_regenerated_kwh"] == pytest.approx(0.5)
+    assert summary["net_energy_kwh"] == pytest.approx((44.0 / 3.6) + 2.0 - 0.5)
+    assert summary["energy_kwh_per_km"] == pytest.approx(summary["net_energy_kwh"])
+
+
+def test_summarize_replicates_writes_energy_savings(tmp_path: Path) -> None:
+    from pyopendrive.sim.analysis import summarize_replicates
+
+    baseline_summary = tmp_path / "baseline_summary.csv"
+    optimized_summary = tmp_path / "optimized_summary.csv"
+    baseline_summary.write_text(
+        "scenario_id,net_energy_kwh,energy_kwh_per_km\nbaseline,10,1.0\n",
+        encoding="utf-8",
+    )
+    optimized_summary.write_text(
+        "scenario_id,net_energy_kwh,energy_kwh_per_km\nsignal_optimized,8,0.8\n",
+        encoding="utf-8",
+    )
+
+    outputs = summarize_replicates(
+        [baseline_summary, optimized_summary],
+        tmp_path / "analysis",
+    )
+
+    with outputs["energy_savings"].open("r", newline="", encoding="utf-8") as file_obj:
+        rows = list(csv.DictReader(file_obj))
+    optimized_row = next(
+        row for row in rows if row["scenario_id"] == "signal_optimized"
+    )
+
+    assert optimized_row["baseline_scenario_id"] == "baseline"
+    assert float(optimized_row["energy_saved_kwh"]) == pytest.approx(2.0)
+    assert float(optimized_row["energy_saved_percent"]) == pytest.approx(20.0)
 
 
 def test_open_drive_map_save_xodr_preserves_loaded_xml(
@@ -316,7 +544,9 @@ def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
     reloaded_center = lane_polygon_center(reloaded_lane)
 
     assert meters_between_lonlat(original_center, reloaded_center) > 1.0
-    assert meters_between_lonlat(edited_center, reloaded_center) < meters_between_lonlat(
+    assert meters_between_lonlat(
+        edited_center, reloaded_center
+    ) < meters_between_lonlat(
         original_center,
         edited_center,
     )
@@ -412,8 +642,12 @@ def test_geometry_and_spline_helpers() -> None:
     assert poly.negate().get(3.0) == pytest.approx(-poly.get(3.0))
     assert len(poly.approximate_linear(0.5, 0.0, 2.0)) >= 2
 
-    spline = odr.xodr.CubicSpline({0.0: odr.xodr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)})
-    other = odr.xodr.CubicSpline({1.0: odr.xodr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)})
+    spline = odr.xodr.CubicSpline(
+        {0.0: odr.xodr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)}
+    )
+    other = odr.xodr.CubicSpline(
+        {1.0: odr.xodr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)}
+    )
     assert spline.size() == 1
     assert not spline.empty()
     assert spline.get(0.5) == pytest.approx(1.0)
@@ -572,9 +806,9 @@ def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
     ]
     lane_params = []
     for lane in edges["280"].findall("lane"):
-      lane_param = lane.find("./param")
-      assert lane_param is not None
-      lane_params.append(lane_param.get("value"))
+        lane_param = lane.find("./param")
+        assert lane_param is not None
+        lane_params.append(lane_param.get("value"))
     assert lane_params == ["-1", "-2"]
 
     connections = root.findall("connection")

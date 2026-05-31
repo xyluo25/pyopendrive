@@ -1,1 +1,75 @@
-
+scenario_id: ev25
+random_seed: 812
+simulation:
+  begin: 27000
+  end: 34200
+  step_length: 1.0
+  carla_fixed_delta_seconds: 0.05
+demand:
+  method: existing_routes
+  period: 1.0
+  seed: 812
+  validate_routes: true
+fleet:
+  ev_share: 0.25
+  ice_emission_class: HBEFA3/PC_G_EU4
+  ev_emission_class: Energy/unknown
+  max_speed_mps: 25.0
+  sigma: 0.5
+sumo:
+  source_net_file: ../../datasets/tempe_net/tempe.net.xml
+  source_route_file: ../../datasets/tempe_net/tempe.rou.xml
+  source_additional_file: ../../datasets/tempe_net/tempe.add.xml
+  netconvert_options: []
+  random_trips_options: []
+  write_tripinfo: true
+  write_emissions: true
+  write_battery: true
+  write_fcd: true
+carla:
+  host: 127.0.0.1
+  port: 2000
+  timeout: 30.0
+  vertex_distance: 2.0
+  max_road_length: 50.0
+  wall_height: 1.0
+  additional_width: 0.6
+  smooth_junctions: true
+cosim:
+  carla_home: null
+  tls_manager: sumo
+  step_length: 0.05
+  sync_vehicle_all: true
+  guess_tls: true
+  use_sumo_gui: true
+ego:
+  enabled: false
+  mode: select_existing
+  highlight_enabled: true
+  highlight_color: "0,0,255"
+  vehicle_ids:
+    - "141_5269.0"
+    - "172_417.0"
+  auto_select_count: 0
+  selection_strategy: first
+  vehicle_type_id: ego_passenger
+  vtype_attributes:
+    vClass: passenger
+    accel: "3.0"
+    decel: "4.5"
+    sigma: "0.0"
+    length: "5.0"
+    maxSpeed: "25.0"
+  vtype_params: {}
+  vehicle_attributes:
+    departLane: best
+    departSpeed: max
+  added_vehicles: []
+  od_pairs: []
+  route_vehicles: []
+  vehicles: []
+  carla_actor_ids: []
+  carla_role_names: []
+  carla_type_ids: []
+  collect_only_ego: true
+  analyze_only_ego: true

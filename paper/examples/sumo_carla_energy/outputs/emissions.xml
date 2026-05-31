@@ -1,8 +1,7 @@
-<!--
-Filename: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs\emissions.xml
-Path: c:\Users\xh8\ORNL_Work\github_workspace\pyopendrive\examples\sumo_carla_energy\outputs
-Created Date: Friday, May 29th 2026, 10:17:23 am
-Author: Mr. Xiangyong Luo
-
-Copyright (c) 2026 Mr. Xiangyong Luo
--->
+<?xml version="1.0" encoding="UTF-8"?>
+<emissions>
+  <timestep time="27000.00">
+    <vehicle id="veh_ice_0" CO2="1066.7" CO="8.0" HC="0.4" NOx="1.0" PMx="0.05" fuel="343.3" electricity="0"/>
+    <vehicle id="veh_ev_0" CO2="0" CO="0" HC="0" NOx="0" PMx="0" fuel="0" electricity="1.3"/>
+  </timestep>
+</emissions>
