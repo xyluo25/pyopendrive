@@ -1,6 +1,6 @@
-# Paper LaTeX Template
+# Paper LaTeX Template 2026
 
-This folder contains an updated LaTeX template for Annual Meeting papers. It was
+This folder contains an updated LaTeX template for TRB Annual Meeting papers. It was
 generated from the previous LaTeX template and aligned with the supplied paper
 requirements and Word template.
 
@@ -17,7 +17,6 @@ venue instructions before submission.
   names in the reference list, and DOI output.
 - `trb_template.bib`: example bibliography.
 - `trb_template-gumbel.pdf`: example figure used by the sample manuscript.
-- `latexmkrc`: lightweight latexmk configuration.
 
 ## Key Requirements Reflected
 
@@ -51,31 +50,6 @@ venue instructions before submission.
 - No appendices or supplemental material. The class raises an error if
   `\appendix` is used.
 - Acknowledgments comments for the venue's AI disclosure policy.
-
-## Build
-
-From this folder:
-
-```powershell
-latexmk -pdf trb_template.tex
-```
-
-The title page includes an editable `\totalpages{...}` line in
-`trb_template.tex`. Leave the braces empty to calculate the page count
-automatically, enter a number to override it, or comment out that line if the
-total page count is not needed.
-
-If `latexmk` is unavailable, run:
-
-```powershell
-pdflatex trb_template.tex
-bibtex trb_template
-pdflatex trb_template.tex
-pdflatex trb_template.tex
-```
-
-No `-shell-escape` flag is required because this version does not run
-`texcount`.
 
 ## Template Commands
 
