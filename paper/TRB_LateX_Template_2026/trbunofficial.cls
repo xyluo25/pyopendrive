@@ -64,9 +64,13 @@
 \AtBeginDocument{%
   \ifpaper@numbered
     \linenumbers
+    \modulolinenumbers[1]
   \fi
 }
 \renewcommand\linenumberfont{\normalfont\small}
+\newcommand{\numberedblankline}{%
+  \hfill\break%
+}
 
 % ----------------------------------------------------------------------
 % Page geometry and basic formatting
@@ -140,7 +144,7 @@
 
 \NewDocumentCommand{\AuthorHeaders}{m}
   { \tl_gset:Nn \g_paper_author_headers_tl {#1} }
-\NewDocumentCommand{\paperAuthorHeaders}{} 
+\NewDocumentCommand{\paperAuthorHeaders}{}
   { \tl_use:N \g_paper_author_headers_tl }
 \NewDocumentCommand{\paperAddHeaderAuthor}{m}
   { \paper_add_header_author:n {#1} }
@@ -201,13 +205,87 @@
 \setlength{\bibsep}{0pt plus 0.3ex}
 \setlength{\bibhang}{0.5in}
 
+\let\paper@latex@bibliographystyle\bibliographystyle
+\let\paper@latex@bibliography\bibliography
+
+\newcommand*\paper@autobibliographystyle{%
+  \IfFileExists{\jobname.bst}{%
+    \paper@latex@bibliographystyle{\jobname}%
+  }{%
+    \IfFileExists{trb.bst}{%
+      \paper@latex@bibliographystyle{trb}%
+    }{%
+      \PackageError{trbunofficial}{No bibliography style file found}{%
+        Add a .bst file that matches the manuscript file name, add trb.bst, or
+        pass a style name explicitly with \string\bibliographystyle{style}.%
+      }%
+    }%
+  }%
+}
+
+\newcommand*\paper@autobibliography{%
+  \IfFileExists{\jobname.bib}{%
+    \paper@latex@bibliography{\jobname}%
+  }{%
+    \IfFileExists{trb_template.bib}{%
+      \paper@latex@bibliography{trb_template}%
+    }{%
+      \PackageError{trbunofficial}{No bibliography database file found}{%
+        Add a .bib file that matches the manuscript file name, add
+        trb_template.bib, or pass a database name explicitly with
+        \string\bibliography{database}.%
+      }%
+    }%
+  }%
+}
+
+\renewcommand{\bibliographystyle}[1]{%
+  \ifblank{#1}{%
+    \paper@autobibliographystyle
+  }{%
+    \paper@latex@bibliographystyle{#1}%
+  }%
+}
+\renewcommand{\bibliography}[1]{%
+  \ifblank{#1}{%
+    \paper@autobibliography
+  }{%
+    \paper@latex@bibliography{#1}%
+  }%
+}
+
 % ----------------------------------------------------------------------
 % Title-page metadata
 % ----------------------------------------------------------------------
-\def\@submissiondate{\today}
-\newcommand{\submissiondate}[1]{\def\@submissiondate{#1}}
+\newcommand*\paper@submissiondateline{}%
+\newcommand{\submissiondate}[1]{%
+  \ifblank{#1}{%
+    \def\paper@submissiondateline{%
+      \textit{Submitted \today}\\%
+    }%
+  }{%
+    \def\paper@submissiondateline{%
+      \textit{Submitted #1}\\%
+    }%
+  }%
+}
 
-\def\@totalpages{\pageref{LastPage}}
+\newcommand*\paper@totalpagesline{}%
+\newcommand{\totalpages}[1]{%
+  \ifblank{#1}{%
+    \def\paper@totalpagesline{%
+      Total Number of Pages:~\pageref{LastPage}\\%
+      \numberedblankline
+      \numberedblankline
+    }%
+  }{%
+    \def\paper@totalpagesline{%
+      Total Number of Pages:~#1\\%
+      \numberedblankline
+      \numberedblankline
+    }%
+  }%
+}
 
 \newif\ifpaper@havecorr
 \paper@havecorrfalse
@@ -249,7 +327,8 @@
     \ifx\relax#6\relax\else #6\\\fi
     \ifx\relax#7\relax\else ORCID:~#7\\\fi
     Email:~\paper@email{#5}%
-    \\[12pt]%
+    \\%
+    \numberedblankline
   }%
   \ifx#1\paper@mark@star
     \global\paper@havecorrtrue
@@ -303,13 +382,10 @@
   \thispagestyle{main}%
   \begin{flushleft}
     {\bfseries\@title}\\
-    \hfill\break%
+    \numberedblankline
     \paper@authors
-    \hfill\break%
-    Total Number of Pages:~\@totalpages\\
-    \hfill\break%
-    \hfill\break%
-    \textit{Submitted \@submissiondate}\\
+    \paper@totalpagesline
+    \paper@submissiondateline
     \ifpaper@havecorr
       \textsuperscript{*}Corresponding Author\\
     \fi

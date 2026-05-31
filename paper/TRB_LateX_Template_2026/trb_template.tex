@@ -3,10 +3,39 @@
 % Updated for the supplied requirements and Word template.
 % ======================================================================
 
+% Document class selection. Leave \manuscriptclass empty to auto-check for a
+% .cls file. Auto mode uses a .cls file matching this manuscript name when
+% available, then falls back to trbunofficial.cls. If multiple .cls files are
+% available, enter the intended class name without the .cls extension.
+\newcommand{\manuscriptclass}{}
+\newcommand{\selectedmanuscriptclass}{}
+\makeatletter
+\ifx\manuscriptclass\@empty
+  \IfFileExists{\jobname.cls}{%
+    \renewcommand{\selectedmanuscriptclass}{\jobname}%
+  }{%
+    \IfFileExists{trbunofficial.cls}{%
+      \renewcommand{\selectedmanuscriptclass}{trbunofficial}%
+    }{%
+      \PackageError{trb_template}{No document class file found}{%
+        Add a .cls file that matches this manuscript file name, add
+        trbunofficial.cls, or set \string\manuscriptclass\space to the class
+        name explicitly.%
+      }%
+    }%
+  }%
+\else
+  \renewcommand{\selectedmanuscriptclass}{\manuscriptclass}%
+\fi
+\makeatother
+
 % Change 10pt to 11pt or 12pt only if your target venue allows it.
-\documentclass[10pt,numbered]{trbunofficial}
+\documentclass[10pt,numbered]{\selectedmanuscriptclass}
 
 \begin{document}
+
+% Use \numberedblankline when a visible blank line should also receive a
+% line number.
 
 % ---------- Title Page ----------
 \title{Title of Paper Format Example}
@@ -16,15 +45,41 @@
 
 % Use \author* for the corresponding author and \author otherwise.
 % \author*{Name}{Job title}{Institutional affiliation}{Email}[Address][ORCID]
-\author*{Academic Author Name}{Academic Position}{Department of XXX, Institution Name}{author@university.edu}[City, State or Country, Postcode][https://orcid.org/0000-0000-0000-0000]
+\author*{Xiangyong Luo}{Academic Position}{Department of XXX, Institution Name}{author@university.edu}[City, State or Country, Postcode][https://orcid.org/0000-0000-0000-0000]
+
 \author{Public Sector Author Name}{Position}{State Department of Transportation, Department if Applicable}{abc@dot.gov}[City, State or Country, Postcode]
+
 \author{Private Practitioner Author Name}{Position}{Company Name}{enj@abc.com}[City, State or Country, Postcode]
 
-% Submission date is calculated automatically from today's date.
-% Uncomment the next line to set a manual submission date.
-% \submissiondate{May 29, 2026}
+% Submission date appears on the title page. Leave the braces empty to use
+% today's date, enter a date to override it, or comment out the next line if
+% this line is not needed.
+\submissiondate{}
 
-% Total Number of Pages is calculated automatically; compile at least twice.
+% Total Number of Pages appears on the title page. Leave the braces empty to
+% calculate the page count automatically, enter a number to override it, or
+% comment out the next line if this line is not needed.
+\totalpages{}
+
+% Optional title-page footnote. Edit the text inside the braces, add another
+% \titlefootnote{...} line for an additional note, or comment out this line if
+% no title-page footnote is needed.
+\titlefootnote{Length: The length of each paper, including the title page, structured abstract, text, acknowledgments, references, figures, and tables, must not exceed 20 pages. Papers not meeting this requirement may be withdrawn from the review process at any time. The paper submission system, Editorial Manager, will generate its own cover page, which does not count toward the page limit.
+Page size and margins: 8.5x11 inch page with 1 inch margins
+Font: Times New Roman font, 10 pt size
+Spacing: single spaced
+Columns: single column
+Line numbering: line numbering is required with line numbers restarting at 1 on each page
+Page numbers: pages must be numbered with page numbers centered at the bottom of each page
+Tables and figures should be embedded in the text, near the text that discusses the item
+Supplemental Material/Appendices are not permitted in TRB Annual Meeting papers.
+References should be called out
+Front Matter
+Title page with: paper title; job titles, institutional affiliations, and email addresses; and total number of pages. Note: you will also be required to enter this information into Editorial Manager when you submit. ORCiD numbers are optional, but strongly encouraged.
+The title should have the first letter of each word capitalized, except for conjunctions, prepositions, and articles.
+Structured abstracts must meet length and content requirements  The structured abstract replaces the traditional
+ Structured Abstract
+To facilitate the initial screening of your paper and direct papers more quickly to appropriate reviewers, manuscripts must include a structured abstract that clearly and concisely summarizes the objectives, methodology, principal findings, and contribution of the research. The structured abstract also facilitates Annual Meeting attendees’ ability to quickly identify papers of interest to them. The structured abstract replaces the traditional (unstructured) abstract. Structured abstracts must conform to the requirements below. An example of a structure abstract can be found in the sample papers.}
 
 \maketitle
 
@@ -36,36 +91,36 @@
 
 \begingroup
 \setlength{\parindent}{0pt}
-\vspace{\baselineskip}
 
+\numberedblankline
 \noindent\textbf{Objectives:} Fare capping, a policy in which a transit agency
 caps the maximum amount a rider pays over a given period, has emerged as a
 recent innovation in public transit fare policy. The objective of this research
 is to compile and compare fare capping policies across U.S. transit agencies
 and to explore potential rider benefits.
-\par\vspace{\baselineskip}
 
+\par\numberedblankline
 \noindent\textbf{Methods:} A multiple case study method was used to examine fare
 capping policies at the 101 largest transit agencies in the United States.
 Agency fare policies were identified through publicly available documents, and
 daily, weekly, and monthly caps were coded for each agency. The analysis
 calculated the number of one-way adult fares required to reach each cap and
 compared the resulting discount patterns.
-\par\vspace{\baselineskip}
 
+\par\numberedblankline
 \noindent\textbf{Findings:} As of September 2021, fare capping was adopted by at
 least 21 of the 101 largest U.S. transit agencies. Most daily fare caps offered
 little discount for a typical two-trip commuter, but daily caps provided more
 meaningful discounts to transit-dependent riders, tourists, and other frequent
 riders.
-\par\vspace{\baselineskip}
 
+\par\numberedblankline
 \noindent\textbf{Novelty:} This paper provides one of the first systematic
 syntheses of fare capping policies across major U.S. transit agencies. It also
 introduces a comparative framework based on cap structure, trip thresholds, and
 rider discount levels.
-\par\vspace{\baselineskip}
 
+\par\numberedblankline
 \noindent\textbf{Practical Applications:} The findings can help transit agencies
 design fare capping policies that better match rider travel patterns and policy
 goals. Agencies can use the framework to compare operational contexts, equity
@@ -207,7 +262,11 @@ supported by \emph{[funding agency]} (grant no.~\emph{xxxxx}).
 % and/or publication of this article.
 
 \newpage
-\bibliographystyle{trb}
-\bibliography{trb_template}
+% Leave these braces empty to auto-check bibliography files. Auto mode uses a
+% .bst or .bib file matching this manuscript name when available, then falls
+% back to trb.bst and trb_template.bib. Enter names without file extensions to
+% override the detected files.
+\bibliographystyle{}
+\bibliography{}
 
 \end{document}
