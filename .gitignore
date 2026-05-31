@@ -71,6 +71,43 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# LaTeX Workshop / latexmk generated files
+# Keep source files such as .tex, .bib, .bst, .cls, .sty, figures, and PDFs
+# trackable; ignore only auxiliary files produced during local builds.
+*.acn
+*.acr
+*.alg
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.lol
+*.lot
+*.nav
+*.nlo
+*.nls
+*.out
+*.run.xml
+*.snm
+*.synctex
+*.synctex(busy)
+*.synctex.gz
+*.synctex.gz(busy)
+*.toc
+*.vrb
+*.xdv
+
 # PyBuilder
 .pybuilder/
 target/
