@@ -1,12 +1,10 @@
 % ======================================================================
-% Annual Meeting Paper Template
-% Updated for the supplied requirements and Word template.
+% TRB Annual Meeting manuscript draft for PyOpenDRIVE.
 % ======================================================================
 
 % Document class selection. Leave \manuscriptclass empty to auto-check for a
 % .cls file. Auto mode uses a .cls file matching this manuscript name when
-% available, then falls back to trbunofficial.cls. If multiple .cls files are
-% available, enter the intended class name without the .cls extension.
+% available, then falls back to trbunofficial.cls.
 \newcommand{\manuscriptclass}{}
 \newcommand{\selectedmanuscriptclass}{}
 \makeatletter
@@ -29,57 +27,19 @@
 \fi
 \makeatother
 
-% Change 10pt to 11pt or 12pt only if your target venue allows it.
 \documentclass[10pt,numbered]{\selectedmanuscriptclass}
 
 \begin{document}
 
-% Use \numberedblankline when a visible blank line should also receive a
-% line number.
-
 % ---------- Title Page ----------
-\title{Title of Paper Format Example}
+\title{OpenDRIVE-Based SUMO-CARLA Co-Simulation for Mobility and Energy Assessment in Urban Transportation Networks}
 
-% The title should capitalize the first letter of each major word, except
-% conjunctions, prepositions, and articles.
+% Edit the affiliation and address before final submission if a formal
+% institutional affiliation should be used instead of independent researcher.
+\author*{Xiangyong Luo}{Researcher}{Independent Researcher}{luoxiangyong01@gmail.com}[United States]
 
-% Use \author* for the corresponding author and \author otherwise.
-% \author*{Name}{Job title}{Institutional affiliation}{Email}[Address][ORCID]
-\author*{Xiangyong Luo}{Academic Position}{Department of XXX, Institution Name}{author@university.edu}[City, State or Country, Postcode][https://orcid.org/0000-0000-0000-0000]
-
-\author{Public Sector Author Name}{Position}{State Department of Transportation, Department if Applicable}{abc@dot.gov}[City, State or Country, Postcode]
-
-\author{Private Practitioner Author Name}{Position}{Company Name}{enj@abc.com}[City, State or Country, Postcode]
-
-% Submission date appears on the title page. Leave the braces empty to use
-% today's date, enter a date to override it, or comment out the next line if
-% this line is not needed.
-\submissiondate{}
-
-% Total Number of Pages appears on the title page. Leave the braces empty to
-% calculate the page count automatically, enter a number to override it, or
-% comment out the next line if this line is not needed.
+\submissiondate{May 31, 2026}
 \totalpages{}
-
-% Optional title-page footnote. Edit the text inside the braces, add another
-% \titlefootnote{...} line for an additional note, or comment out this line if
-% no title-page footnote is needed.
-\titlefootnote{Length: The length of each paper, including the title page, structured abstract, text, acknowledgments, references, figures, and tables, must not exceed 20 pages. Papers not meeting this requirement may be withdrawn from the review process at any time. The paper submission system, Editorial Manager, will generate its own cover page, which does not count toward the page limit.
-Page size and margins: 8.5x11 inch page with 1 inch margins
-Font: Times New Roman font, 10 pt size
-Spacing: single spaced
-Columns: single column
-Line numbering: line numbering is required with line numbers restarting at 1 on each page
-Page numbers: pages must be numbered with page numbers centered at the bottom of each page
-Tables and figures should be embedded in the text, near the text that discusses the item
-Supplemental Material/Appendices are not permitted in TRB Annual Meeting papers.
-References should be called out
-Front Matter
-Title page with: paper title; job titles, institutional affiliations, and email addresses; and total number of pages. Note: you will also be required to enter this information into Editorial Manager when you submit. ORCiD numbers are optional, but strongly encouraged.
-The title should have the first letter of each word capitalized, except for conjunctions, prepositions, and articles.
-Structured abstracts must meet length and content requirements  The structured abstract replaces the traditional
- Structured Abstract
-To facilitate the initial screening of your paper and direct papers more quickly to appropriate reviewers, manuscripts must include a structured abstract that clearly and concisely summarizes the objectives, methodology, principal findings, and contribution of the research. The structured abstract also facilitates Annual Meeting attendees’ ability to quickly identify papers of interest to them. The structured abstract replaces the traditional (unstructured) abstract. Structured abstracts must conform to the requirements below. An example of a structure abstract can be found in the sample papers.}
 
 \maketitle
 
@@ -87,186 +47,647 @@ To facilitate the initial screening of your paper and direct papers more quickly
 % Required headings, in order: Objectives, Methods, Findings, Novelty,
 % Practical Applications. Keep the full structured abstract to 300 words or
 % fewer. Do not include figures, tables, equations, or undefined acronyms.
-\section*{ABSTRACT}
+\section*{Abstract}
 
 \begingroup
 \setlength{\parindent}{0pt}
 
-\numberedblankline
-\noindent\textbf{Objectives:} Fare capping, a policy in which a transit agency
-caps the maximum amount a rider pays over a given period, has emerged as a
-recent innovation in public transit fare policy. The objective of this research
-is to compile and compare fare capping policies across U.S. transit agencies
-and to explore potential rider benefits.
+\noindent\textbf{Objectives:} Urban traffic operations and digital-twin studies
+need consistent road networks across microscopic traffic simulation and
+high-fidelity driving simulation. This study develops an OpenDRIVE-centered
+workflow using PyOpenDRIVE, Simulation of Urban MObility (SUMO), and the CARLA
+driving simulator to support reproducible mobility and vehicle energy
+assessment from a shared lane-level network.
 
 \par\numberedblankline
-\noindent\textbf{Methods:} A multiple case study method was used to examine fare
-capping policies at the 101 largest transit agencies in the United States.
-Agency fare policies were identified through publicly available documents, and
-daily, weekly, and monthly caps were coded for each agency. The analysis
-calculated the number of one-way adult fares required to reach each cap and
-compared the resulting discount patterns.
+\noindent\textbf{Methods:} PyOpenDRIVE is used to inspect and edit an
+OpenDRIVE road network, write a reproducible project directory, and generate
+SUMO-CARLA co-simulation inputs from a shared \texttt{.xodr} file. The workflow
+creates SUMO network, route, vehicle-type, configuration, and run files; CARLA
+scripts for loading the same OpenDRIVE network and collecting vehicle telemetry;
+and optional SUMO-CARLA synchronization scripts. The case study uses the
+repository's Tempe, Arizona, OpenDRIVE and SUMO files and evaluates a 10-minute
+smoke-run window. Outputs are analyzed with streaming XML and
+comma-separated-value parsers that write reproducible tables, metadata, and
+figures.
 
 \par\numberedblankline
-\noindent\textbf{Findings:} As of September 2021, fare capping was adopted by at
-least 21 of the 101 largest U.S. transit agencies. Most daily fare caps offered
-little discount for a typical two-trip commuter, but daily caps provided more
-meaningful discounts to transit-dependent riders, tourists, and other frequent
-riders.
+\noindent\textbf{Findings:} The implemented workflow prepared a Tempe
+OpenDRIVE network containing 5,885 roads, 755 junctions, 15,496 lanes, 4,149
+signals, and 243 controllers. A SUMO-only validation run completed two selected
+vehicles and produced reproducible mobility summaries, command logs, and
+high-resolution figures. CARLA and co-simulation results were not statistically
+tested in this smoke run and are explicitly reported as unavailable when the
+external CARLA runtime is not executed.
 
 \par\numberedblankline
-\noindent\textbf{Novelty:} This paper provides one of the first systematic
-syntheses of fare capping policies across major U.S. transit agencies. It also
-introduces a comparative framework based on cap structure, trip thresholds, and
-rider discount levels.
+\noindent\textbf{Novelty:} The study contributes a reproducible OpenDRIVE-based
+workflow that links 3D real-world network editing, lane-level preparation, SUMO
+mobility-energy simulation setup, CARLA telemetry setup, and
+transportation-ready result exports.
 
 \par\numberedblankline
-\noindent\textbf{Practical Applications:} The findings can help transit agencies
-design fare capping policies that better match rider travel patterns and policy
-goals. Agencies can use the framework to compare operational contexts, equity
-goals, and implementation constraints.
+\noindent\textbf{Practical Applications:} Transportation agencies and researchers
+can use the workflow to prepare consistent digital-twin simulation cases,
+document simulator inputs, and screen traffic operations, electrification, and
+control scenarios with transparent reproducibility records.
 \par\endgroup
 \newpage
 
 % ---------- Main Text ----------
 \section{Introduction}\label{sec:intro}
-Sed efficitur magna nisl, id aliquet leo molestie et. Quisque vestibulum
-imperdiet neque, id cursus felis rutrum et. Duis porttitor nisl arcu, sit amet
-varius justo convallis vitae. Maecenas pretium ullamcorper massa sed volutpat
-\citep{smith2020}. Duis libero augue, porttitor sed magna quis, ultrices
-molestie magna. Nam in orci in dolor accumsan rhoncus ut et leo. Phasellus
-rutrum enim ut purus lacinia, eget faucibus odio fermentum.
 
-Morbi dictum placerat erat ac tempor. Pellentesque elementum accumsan quam.
-Integer ultricies feugiat placerat. Morbi quis eros et augue iaculis auctor.
-Aliquam rhoncus lacus ut tortor egestas, in luctus nisl semper. Quisque
-ultrices sapien turpis, at aliquam est sodales sit amet. Nulla congue risus in
-ligula aliquam cursus.
+Urban transportation networks are increasingly evaluated through simulation
+before field deployment of signal timing plans, connected-vehicle strategies,
+electric-fleet policies, or digital-twin applications. These studies often need
+two levels of representation. A network-scale traffic simulator is needed for
+vehicle movements, delay, emissions, and energy use over many trips. A
+high-fidelity driving simulator is useful for three-dimensional visualization,
+vehicle telemetry, and automated-driving experiments. The practical difficulty is
+that these tools can require different network formats, different coordinate
+assumptions, and different execution scripts. A study can therefore lose
+reproducibility when the same road network is edited separately for each
+simulator.
 
-\section{Methods}
-Mauris scelerisque maximus viverra. Proin sagittis faucibus viverra. Ut et
-tellus eros. Mauris sollicitudin porttitor enim vel congue. Quisque dictum
-ornare posuere. Fusce malesuada rhoncus nisl sit amet rutrum. Vivamus posuere
-elit dui, eu scelerisque urna interdum sed.
+OpenDRIVE addresses part of this problem by providing a standardized static road
+network description for simulation, including roads, reference lines, lanes,
+road markings, objects, and signals \citep{asam2026opendrive}. SUMO provides a
+widely used microscopic traffic simulation platform for mobility, emission, and
+energy analysis \citep{alvarezlopez2018sumo}. CARLA provides an open urban
+driving simulator for high-fidelity autonomous-driving and vehicle telemetry
+experiments \citep{dosovitskiy2017carla}. However, an applied transportation
+study still needs a repeatable workflow that prepares one OpenDRIVE network,
+generates the SUMO and CARLA project files, records the exact commands, and
+exports analysis tables that can be reviewed.
 
-Duis ut turpis maximus, semper sapien in, elementum metus. Proin sit amet sem
-sit amet tortor blandit dapibus. Nam fringilla nunc quis nisl faucibus laoreet.
-Nam eu elit laoreet, iaculis sem quis, rhoncus libero \citep{smithJones2020}.
+This paper presents PyOpenDRIVE as an OpenDRIVE-centered workflow layer for
+joint SUMO and CARLA studies. PyOpenDRIVE is a Python package adapted from the
+libOpenDRIVE project and extended with OpenDRIVE reading, inspection, editing,
+SUMO conversion, browser visualization, and a simulation project builder
+\citep{libopendrive2023}. The contribution of this paper is not a new traffic
+flow model or a new vehicle energy model. Instead, the contribution is a
+reproducible workflow that makes simulator preparation and result processing
+auditable for transportation studies.
 
-\subsection{Level 2 Header}
-Quisque ultrices sapien turpis, at aliquam est sodales sit amet. Nulla congue
-risus in ligula aliquam cursus. Sed vel augue consequat orci mollis aliquet nec
-non arcu. Sed scelerisque quam elementum, maximus tortor ut, suscipit arcu.
+The study has three objectives. First, it defines an OpenDRIVE-centered project
+layout that keeps network files, simulator inputs, commands, outputs, and
+analysis artifacts together. Second, it implements SUMO, CARLA, and optional
+SUMO-CARLA co-simulation builders that can run in dry-run mode when external
+simulators are not installed. Third, it demonstrates the workflow on a Tempe
+urban network example and reports the generated artifacts and SUMO-only mobility
+outputs.
 
-\subsubsection{Level 3 Header}
-Fusce malesuada rhoncus nisl sit amet rutrum. Vivamus posuere elit dui, eu
-scelerisque urna interdum sed \citep{smithEtAl2020}. Etiam quis libero id
-lacus bibendum interdum. Morbi et pretium lorem \citep[25--27]{smith2021}.
+\section{Background}\label{sec:background}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.55\linewidth]{trb_template-gumbel}
-  \caption{Caption for figure}\label{fig:example}
-\end{figure}
+\subsection{OpenDRIVE for Simulation Network Exchange}
 
-Maecenas pretium ullamcorper massa sed volutpat. Duis libero augue, porttitor
-sed magna quis, ultrices molestie magna. Nam in orci in dolor accumsan rhoncus
-ut et leo. Figure~\ref{fig:example} shows the expected placement of figures
-near the relevant discussion.
+OpenDRIVE stores a road network as an XML-based static description with the
+file extensions \texttt{.xodr} and \texttt{.xodrz}. The current ASAM standard
+describes its application to road-network description, driving simulation, and
+traffic simulation \citep{asam2026opendrive}. The format is useful for this
+study because it can represent lane-level network geometry and traffic-control
+features in one exchange file. That representation does not remove all
+interoperability problems. SUMO and CARLA may still interpret geometry,
+junctions, lane links, and signals differently. A reproducible workflow must
+therefore preserve the source file, record any prepared copy, and report which
+simulator-specific files were generated from it.
 
-\section{Results}
-Nulla eu urna et erat bibendum venenatis sit amet sed sem. Nam quis quam
-tempor, placerat turpis a, imperdiet ante. Integer eleifend aliquam magna quis
-viverra. Nulla consequat sem vitae mi lacinia maximus.
+\subsection{SUMO and CARLA Roles}
+
+SUMO is used in this workflow as the primary source of traffic mobility,
+emission, and electric-vehicle energy outputs. Its network conversion, route
+generation, and vehicle-type files make it suitable for scenario studies that
+vary demand, fleet mix, speed assumptions, and traffic operations. The workflow
+creates SUMO configuration files that can request trip information, emissions,
+battery outputs, summary statistics, and floating-car data when those outputs
+are needed \citep{eclipse2026sumodocs}.
+
+CARLA is used as the high-fidelity simulation and telemetry layer. The workflow
+generates scripts that load the same prepared OpenDRIVE network into CARLA
+standalone mode, apply a fixed simulation time step, and collect vehicle
+positions, orientations, speeds, accelerations, and jerk values. CARLA is not
+treated as the default energy model in this workflow unless a separate validated
+energy model is added. The optional co-simulation scripts follow the CARLA
+SUMO-synchronization pattern and assume that the CARLA server and helper scripts
+are installed outside the Python package \citep{carla2026docs}.
+
+\subsection{Recent OpenDRIVE and SUMO-CARLA Co-Simulation Studies}
+
+Recent literature shows why OpenDRIVE-centered preparation remains important
+for transportation simulation. Simulator surveys emphasize CARLA's role as an
+open-source, high-fidelity 3D environment and identify co-simulation with
+traffic simulators as a key capability for autonomous-driving research
+\citep{li2024choose, silva2024realistic}. A recent connected-and-automated
+vehicle co-simulation survey similarly frames coupled traffic, vehicle,
+perception, and communication models as a response to the limits of
+single-platform simulation \citep{ashayer2025cosimulation}. Application studies
+have used CARLA-SUMO co-simulation for cooperative platooning and merging
+\citep{han2022strategic}, the OpenCDA framework and research ecosystem
+\citep{xu2021opencda, xu2023opencdaecosystem}, simulation-to-real CDA integration
+\citep{zheng2023opencdaros}, infrastructure-assisted trajectory prediction and
+risk assessment \citep{cao2025segment}, roadside LiDAR placement
+\citep{chen2024roadside}, camera-based traffic-signal reinforcement learning
+\citep{azfar2025traffic}, and performance scaling with mesoscopic traffic
+simulation \citep{varga2023optimizing}. Verification work such as TSC2CARLA
+also demonstrates growing interest in toolchains that translate abstract
+driving scenarios into CARLA executions \citep{borchers2025tsc2carla}. Across
+these studies, OpenDRIVE and related high-definition map representations provide
+the static road-network foundation, while SUMO and CARLA divide network-scale
+mobility from high-fidelity vehicle and sensor simulation. The remaining
+practical gap is a reproducible network-preparation layer that can inspect,
+edit, export, and document the shared OpenDRIVE source before simulator-specific
+files are produced.
+
+\section{Methodology}\label{sec:methodology}
+
+\subsection{3.1 PyOpenDRIVE: The 3D Real-World OpenDRIVE Network Viewer and Editor}
+
+The central method in this study is the development of PyOpenDRIVE as a
+3D real-world OpenDRIVE network viewer and editor. Existing online OpenDRIVE
+viewers are useful for loading an \texttt{.xodr} file, visualizing the road
+model in a browser, and in some cases exporting a static 3D mesh. PyOpenDRIVE
+extends that viewer concept into an editable, georeferenced, transportation
+network preparation environment. In this sense, PyOpenDRIVE is positioned as a
+state-of-the-art OpenDRIVE web viewer/editor for this workflow: it combines
+OpenDRIVE parsing, lane-level visualization, real-world basemap alignment,
+interactive network editing, and \texttt{.xodr}-based SUMO-CARLA
+co-simulation environment generation in one reproducible toolchain.
+
+The viewer/editor is implemented with a local Python HTTP server and a MapLibre
+GL front end. The server reads an OpenDRIVE file through PyOpenDRIVE, exports
+roads, lane polygons, traffic signals, posts, mast arms, and other supported
+objects as GeoJSON, and converts OpenDRIVE local coordinates to longitude and
+latitude with \texttt{convertXY2LonLat}. When the analyst saves edits, the
+server applies the reverse conversion with \texttt{convertLonLat2XY} and writes
+supported geometry and attribute changes back to OpenDRIVE XML. This design
+keeps the browser responsive while keeping the OpenDRIVE parsing and XML update
+logic in Python, where it can be tested and reused by the simulation builder.
+
+The editor is designed for real-world network inspection rather than a detached
+schematic view. When the input network contains real-world longitude and
+latitude information, the map can be displayed on road, satellite, or terrain
+basemaps; otherwise, it falls back to a grid-mesh view for local-coordinate
+networks. Users can click and drag lanes, signal heads, signal posts, mast arms,
+and environment objects, inspect selected attributes in the OpenDriveViewer
+panel, edit lane identifiers and predecessor/successor relationships, add or
+delete lanes and signal-support objects, undo the most recent movement, and save
+an \texttt{edited\_network.xodr} file through the \texttt{/api/save-xodr}
+endpoint. The save path is intentionally conservative: it updates supported
+road, lane, signal, and object attributes while preserving OpenDRIVE content
+that is not handled by the editor.
+
+This viewer/editor makes PyOpenDRIVE more than a file converter. Starting from
+one source \texttt{.xodr} file, PyOpenDRIVE can build the working directory for
+a SUMO-CARLA co-simulation case: a prepared OpenDRIVE network, SUMO network and
+route inputs, vehicle-type and simulation-configuration files, CARLA scripts for
+OpenDRIVE world loading and telemetry collection, and synchronization scripts
+for CARLA's SUMO bridge. The viewer/editor provides the reviewable preparation
+layer where analysts can verify lane-level geometry, traffic-control assets,
+object placement, and coordinate alignment before those simulator files are
+created. For a TRB-style workflow, the same design supports reproducibility
+because the source \texttt{.xodr}, edited \texttt{.xodr}, generated simulator
+inputs, run commands, and analysis artifacts can be stored in the same project
+directory.
+
+\subsection{Workflow Design}
+
+The workflow starts with one OpenDRIVE \texttt{.xodr} file and creates a
+project directory with separate folders for the prepared network, SUMO files,
+CARLA files, co-simulation scripts, and analysis outputs. This structure turns
+the \texttt{.xodr} network into an executable SUMO-CARLA co-simulation
+environment when the external SUMO and CARLA dependencies are available, and
+into a fully auditable dry-run environment when they are not.
+Table~\ref{tab:workflow} summarizes the main components. Each build writes a
+\texttt{project\_config.json} file containing the source network path, scenario
+configuration, build flags, and dry-run status. This file is the main
+reproducibility record for the generated case.
 
 \begin{table}[htbp]
-  \caption{Measurement Conversion}\label{tab:conversion}
+  \caption{Workflow Components and Reproducibility Files}
+  \label{tab:workflow}
   \centering
-  \begin{tabular}{lll}
+  \begin{tabular}{p{0.23\linewidth}p{0.33\linewidth}p{0.34\linewidth}}
     \hline
-    When You Know & Multiply by & To Find \\
+    Component & Main function & Reproducibility files \\
     \hline
-    inches (in.) & 25.4 & millimeters (mm) \\
-    feet (ft) & 0.305 & meters (m) \\
-    yards (yd) & 0.914 & meters (m) \\
-    miles (mi) & 1.61 & kilometers (km) \\
-    acres & 0.405 & hectares (ha) \\
+    OpenDRIVE preparation & Copy source \texttt{.xodr}, create prepared
+    network, and summarize roads, lanes, signals, and controllers &
+    \texttt{network/input.xodr}, \texttt{network/prepared.xodr},
+    \texttt{network/network\_summary.json} \\
+    SUMO builder & Create or copy SUMO network, route, vehicle-type,
+    configuration, and run files & \texttt{sumo/scenario.sumocfg},
+    \texttt{sumo/vtypes.add.xml}, \texttt{sumo/build\_sumo\_plan.json} \\
+    CARLA builder & Write scripts to load the prepared OpenDRIVE network and
+    collect vehicle telemetry & \texttt{carla/load\_opendrive\_world.py},
+    \texttt{carla/collect\_telemetry.py} \\
+    Co-simulation builder & Write SUMO-CARLA helper commands without starting
+    CARLA automatically & \texttt{cosim/run\_synchronization.sh},
+    \texttt{cosim/run\_synchronization.bat} \\
+    Analysis & Parse SUMO and optional CARLA outputs, then export tables and
+    figures & \texttt{scenario\_summary.csv},
+    \texttt{mobility\_energy\_table.csv}, and
+    \texttt{analysis/figures/} \\
     \hline
   \end{tabular}
 \end{table}
 
-Sed eu lacus sit amet risus sodales pretium a ac ex. Donec gravida auctor
-efficitur. Curabitur maximus pellentesque mollis. Table~\ref{tab:conversion}
-shows an example table embedded near the text that discusses it.
+\subsection{Network Preparation}
 
-\section{Discussion}
-Nunc eros felis, dapibus eu nisl convallis, pellentesque facilisis sapien.
-Duis vel magna ac ligula rutrum volutpat. Donec sed malesuada ipsum. Morbi sed
-metus sem. Etiam bibendum posuere elementum.
+The network preparation step uses standard-library XML parsing to summarize the
+OpenDRIVE file without loading all simulator dependencies. The summary counts
+roads, junctions, lane sections, lanes, signals, objects, and controllers. It
+also records sample road and junction identifiers and the OpenDRIVE header. This
+simple summary is not a full semantic validation of OpenDRIVE, but it gives
+reviewers and analysts a transparent check that the expected network was used.
 
-Equations are left aligned and should be introduced in the surrounding text:
-\begin{align}
-  \dot{x}_\alpha &= \frac{\mathrm{d}x_\alpha}{\mathrm{d}t} = v_\alpha,\\
-  \dot{v}_\alpha &= a\!\left[
-    1 - \left(\frac{v_\alpha}{v_0}\right)^\delta
-    - \left(\frac{s^*(v_\alpha,\Delta v_\alpha)}{s_\alpha}\right)^2
-  \right].
-\end{align}
+\subsection{SUMO Project Generation}
 
-Donec libero velit, bibendum sit amet dignissim in, tempus vel lorem. Donec
-consectetur dui lorem, gravida eleifend metus blandit ut. Fusce metus lorem,
-volutpat sagittis orci id, lobortis semper lectus.
+The SUMO builder supports two input modes. If SUMO files already exist beside
+the OpenDRIVE file or are named in the scenario configuration, the builder copies
+those files into the project. This is useful when a case study already has a
+calibrated SUMO network and route file. If those files are not available, the
+builder plans or runs \texttt{netconvert} to create a SUMO network from the
+prepared OpenDRIVE file and plans or runs \texttt{randomTrips.py} for test
+demand generation. Missing SUMO tools are nonfatal in dry-run builds and fatal
+only when the user requests a real simulation run.
 
-\section{Conclusions}
-Nulla eu urna et erat bibendum venenatis sit amet sed sem. Nam quis quam
-tempor, placerat turpis a, imperdiet ante. Integer eleifend aliquam magna quis
-viverra. Nulla consequat sem vitae mi lacinia maximus.
+The builder writes vehicle types for internal-combustion and electric passenger
+vehicles. The electric vehicle type includes SUMO battery-device parameters,
+while the internal-combustion type uses a configurable emission class. A
+scenario file controls electric-vehicle share, maximum speed, driver sigma,
+simulation start and end time, and output-file options. When route records are
+generated by the workflow, vehicle types are assigned using a seeded random
+number generator so the same scenario can be rebuilt reproducibly.
 
-Supplemental material and appendices are not permitted for this paper format
-and should not be included in this manuscript.
+\subsection{CARLA and Co-Simulation Project Generation}
+
+The CARLA builder writes Python scripts instead of directly controlling the
+CARLA server during project generation. The loading script connects to the
+configured host and port, reads \texttt{network/prepared.xodr}, calls CARLA's
+OpenDRIVE world-generation API, and applies fixed-time-step settings. The
+telemetry script records frame number, elapsed time, actor identifiers, pose,
+velocity, acceleration, speed, acceleration magnitude, and jerk to a CSV file.
+Optional ego-vehicle filters can restrict the telemetry file to selected actors.
+
+The co-simulation builder creates shell and Windows batch scripts for CARLA's
+SUMO synchronization helpers. The scripts create CARLA-compatible SUMO vehicle
+types, convert the OpenDRIVE network for synchronization, and run the
+synchronization process with a configurable time step and traffic-light manager.
+The generated scripts require \texttt{CARLA\_HOME}; they intentionally do not
+start the CARLA server automatically.
+
+\subsection{Analysis}
+
+The analysis module parses SUMO \texttt{tripinfo.xml} with streaming XML parsing
+so that large output files can be processed without loading the entire document
+tree. Nested \texttt{emissions} and \texttt{battery} records are flattened when
+available. The analysis reports completed vehicles, average travel time, route
+length, average speed, waiting time, time loss, throughput, total distance, fuel
+energy, electricity use, battery energy consumed, regenerated energy, and energy
+intensity. CARLA telemetry summaries are written only when a telemetry CSV is
+available; otherwise the analysis metadata records why CARLA results were
+skipped.
+
+\section{Case Study}\label{sec:case-study}
+
+\subsection{Network and Scenario}
+
+The demonstration uses the Tempe network bundled under
+\texttt{paper/examples/datasets/tempe\_net}. The prepared OpenDRIVE file reports
+a rectangular header extent of 9,771.55 m east-west and 15,721.36 m north-south.
+The case study is intended as a workflow validation example rather than a
+calibrated policy evaluation. Table~\ref{tab:network-summary} gives the
+OpenDRIVE network counts written by the workflow.
+
+\begin{table}[htbp]
+  \caption{Tempe OpenDRIVE Network Summary}
+  \label{tab:network-summary}
+  \centering
+  \begin{tabular}{lr}
+    \hline
+    Network element & Count \\
+    \hline
+    Roads & 5,885 \\
+    Junctions & 755 \\
+    Lane sections & 5,885 \\
+    Lanes & 15,496 \\
+    Signals & 4,149 \\
+    Controllers & 243 \\
+    Objects & 0 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The scenario configuration files include a baseline case, electric-vehicle fleet
+share cases, an eco-speed case, and a signal-optimized placeholder case. The
+paper demonstration uses the existing SUMO files associated with the Tempe
+network and the SUMO-only smoke-run configuration. That configuration runs a
+10-minute window from 27,000 s to 27,600 s and disables high-volume emissions,
+battery, and floating-car output files to keep the repository example small.
+
+\subsection{Commands}
+
+The dry-run build command creates SUMO, CARLA, and co-simulation files without
+requiring a CARLA server:
+
+\begin{verbatim}
+python -m pyopendrive.sim.cli build \
+  --xodr paper/examples/datasets/tempe_net/tempe.xodr \
+  --out paper/examples/sumo_carla_energy/generated/tempe_baseline \
+  --scenario paper/examples/sumo_carla_energy/configs/scenario_baseline.yaml \
+  --build-sumo --build-carla --build-cosim --dry-run --overwrite
+\end{verbatim}
+
+The SUMO-only command builds the project, executes SUMO when it is available,
+and analyzes the outputs:
+
+\begin{verbatim}
+python -m pyopendrive.sim.cli sumo-only \
+  --xodr paper/examples/datasets/tempe_net/tempe.xodr \
+  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only \
+  --scenario paper/examples/sumo_carla_energy/configs/scenario_sumo_from_xodr.yaml \
+  --overwrite
+\end{verbatim}
+
+\section{Results}\label{sec:results}
+
+\subsection{Generated Files}
+
+The workflow generated the expected project folders and reproducibility files.
+For the SUMO-only example, the project includes the copied and prepared
+OpenDRIVE network, a network summary JSON file, copied SUMO network and route
+inputs, a generated SUMO configuration, vehicle-type definitions, a run command
+log, and analysis tables and figures. CARLA and co-simulation scripts are
+generated by the dry-run build, but CARLA telemetry is not interpreted unless
+the CARLA runtime is actually executed.
+
+\subsection{SUMO-Only Mobility Output}
+
+Table~\ref{tab:sumo-results} reports the smoke-run SUMO mobility summary. The
+run completed two selected vehicles in the 10-minute example window. Because
+detailed energy, emissions, battery, and floating-car outputs were intentionally
+disabled for this small repository run, the energy and emissions columns in the
+analysis files should be interpreted as unavailable for this demonstration, not
+as zero-energy vehicle operation.
+
+\begin{table}[htbp]
+  \caption{SUMO-Only Smoke-Run Mobility Metrics}
+  \label{tab:sumo-results}
+  \centering
+  \begin{tabular}{lr}
+    \hline
+    Metric & Value \\
+    \hline
+    Completed vehicles & 2 \\
+    Average travel time, s & 9.0 \\
+    Average route length, m & 148.2 \\
+    Average speed, m/s & 16.47 \\
+    Average waiting time, s & 0.0 \\
+    Average waiting count & 0.0 \\
+    Average time loss, s & 0.0 \\
+    Throughput, vehicles/h & 720.0 \\
+    Total completed distance, km & 0.296 \\
+    Detailed energy and emissions & Not analyzed in smoke run \\
+    CARLA telemetry & Not executed in SUMO-only run \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.88\linewidth]{../examples/sumo_carla_energy/generated/tempe_sumo_only/analysis/figures/mobility_energy_summary.png}
+  \caption{Automatically generated mobility-energy summary figure for the
+  SUMO-only Tempe smoke run. Energy values are not interpreted for this run
+  because detailed energy outputs were disabled in the scenario configuration.}
+  \label{fig:mobility-energy-summary}
+\end{figure}
+
+Figure~\ref{fig:mobility-energy-summary} shows the generated figure artifact.
+The figure is useful as a reproducibility check: the same analysis command writes
+the CSV tables and the plotted summary in a deterministic location under the
+project's \texttt{analysis/figures} directory. For a final policy-facing study,
+the same plotting path can be used after enabling detailed SUMO energy and
+emission outputs and running the scenario set across multiple random seeds.
+
+\subsection{CARLA and Co-Simulation Readiness}
+
+The CARLA and co-simulation parts of the workflow were evaluated through file
+generation and dependency checks. The generated CARLA files include a script for
+loading the prepared OpenDRIVE network into a CARLA world and a script for
+recording vehicle telemetry. The generated co-simulation scripts include
+commands for CARLA SUMO vehicle-type creation, CARLA-compatible SUMO network
+conversion, and synchronization execution. When the CARLA Python API or
+\texttt{CARLA\_HOME} is absent, the command-line interface reports these missing
+dependencies with explicit messages and does not claim that CARLA results are
+available.
+
+\section{Discussion}\label{sec:discussion}
+
+The demonstration shows that PyOpenDRIVE can serve as a practical workflow layer
+between an OpenDRIVE network and simulator-specific project files. This is
+useful for transportation studies because many reproducibility failures happen
+outside the modeling equations: analysts may lose track of which network was
+used, which simulator command generated an output, or which external dependency
+was needed. The project layout and JSON command logs address those problems in a
+simple way that can be reviewed without specialized software.
+
+The current implementation is intentionally conservative about claims. SUMO is
+the default source for mobility, emission, and energy measures because its output
+files include established trip, emissions, and battery records. CARLA is used
+for three-dimensional simulation and telemetry unless an additional validated
+energy model is attached. The analysis also avoids fabricating cross-simulator
+consistency metrics. If vehicle matching between SUMO and CARLA is unavailable,
+the workflow reports the CARLA fields as unavailable rather than estimating
+unmatched speed or position differences.
+
+The main limitation of the demonstration is that the reported Tempe run is a
+smoke test, not a calibrated multi-scenario evaluation. It verifies that the
+network preparation, SUMO execution, parsing, and paper-output generation work
+on a real project directory. It does not support conclusions about the energy
+effects of electrification, eco-speed operation, or signal optimization. A final
+TRB study using this workflow should run the full scenario set, enable detailed
+energy and emissions outputs, calibrate demand and vehicle parameters, and use
+multiple random seeds.
+
+Another limitation is simulator interpretation. OpenDRIVE improves network
+exchange, but it does not guarantee that SUMO and CARLA will represent all
+junctions, signals, lanes, and surface geometry identically. The workflow makes
+these translations easier to inspect, but final validation should compare
+network topology, route feasibility, travel times, and selected trajectory
+statistics after both simulators are run.
+
+\section{Conclusions}\label{sec:conclusions}
+
+This paper presents an OpenDRIVE-based PyOpenDRIVE workflow for preparing SUMO,
+CARLA, and optional SUMO-CARLA co-simulation projects. The workflow copies and
+summarizes a source OpenDRIVE network, writes reproducible project metadata,
+generates simulator-specific files and run scripts, and exports analysis tables
+and figures. The Tempe example demonstrates that the workflow can prepare a
+network with 5,885 roads and 15,496 lanes, run a SUMO-only smoke test, and write
+reviewable mobility outputs and figure artifacts.
+
+The workflow is most useful as a reproducible simulation-preparation and
+analysis layer for transportation digital-twin studies. Its current results
+support workflow feasibility, not policy conclusions. Future work should add
+batch scenario execution, calibrated demand inputs, multi-seed statistical
+summaries, CARLA trajectory validation, and direct comparison of SUMO and CARLA
+vehicle traces where stable vehicle matching is available.
 
 \section{Acknowledgments}
-The author must be transparent in their use of artificial intelligence (AI) or
-large language models in the Submission Details tab in Editorial Manager and,
-where appropriate, in this section.
 
-% If generative AI was used to produce or substantially modify content, disclose
-% the tool and purpose. Assistive spelling, grammar, punctuation, and basic
-% sentence-structure tools do not require disclosure.
-% \AIDisclosure{The authors used [tool name and version] to [specific
-% purpose]. The authors reviewed and verified all AI-assisted outputs.}
+The author thanks the open-source SUMO, CARLA, ASAM OpenDRIVE, and
+libOpenDRIVE communities for the tools and standards that make this workflow
+possible.
+
+\AIDisclosure{The author used OpenAI ChatGPT 5.5 to polish the manuscrip text and LaTeX formatting from repository files and official author instructions. The author is responsible for verifying the technical claims, references, and final submission metadata before submission.}
 
 \section{Author Contributions}
-The authors confirm contribution to the paper as follows: study conception and
-design: X.~Author, Y.~Author; data collection: Y.~Author; analysis and
-interpretation of results: X.~Author, Y.~Author, Z.~Author; draft manuscript
-preparation: Y.~Author, Z.~Author. All authors reviewed the results and
-approved the final version of the manuscript.
+
+The author confirms contribution to the paper as follows: study conception and
+design: X.~Luo; software implementation and workflow integration: X.~Luo; data
+collection and example execution: X.~Luo; analysis and interpretation of
+results: X.~Luo; draft manuscript preparation: X.~Luo. The author reviewed the
+results and approved the final version of the manuscript.
 
 \section{Declaration of Conflicting Interests}
-% Choose one of the following statements.
-The authors declared no potential conflicts of interest with respect to the
+
+The author declared no potential conflicts of interest with respect to the
 research, authorship, and/or publication of this article.
 
-% The authors declared the following potential conflicts of interest with
-% respect to the research, authorship, and/or publication of this article:
-% \emph{[insert text here]}.
-
 \section{Funding}
-% Choose one of the following statements.
-The authors disclosed receipt of the following financial support for the
-research, authorship, and/or publication of this article: This research was
-supported by \emph{[funding agency]} (grant no.~\emph{xxxxx}).
 
-% The authors disclosed no financial support for the research, authorship,
-% and/or publication of this article.
+The author disclosed no financial support for the research, authorship, and/or
+publication of this article.
 
 \newpage
-% Leave these braces empty to auto-check bibliography files. Auto mode uses a
-% .bst or .bib file matching this manuscript name when available, then falls
-% back to trb.bst and trb_template.bib. Enter names without file extensions to
-% override the detected files.
-\bibliographystyle{}
-\bibliography{}
+\begin{thebibliography}{18}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{{\'A}lvarez~L{\'o}pez et~al.(2018){\'A}lvarez~L{\'o}pez, Behrisch,
+  Bieker-Walz, Erdmann, Fl{\"o}tter{\"o}d, Hilbrich, L{\"u}cken, Rummel,
+  Wagner, and Wie{\ss}ner}]{alvarezlopez2018sumo}
+{\'A}lvarez~L{\'o}pez, Pablo, Michael Behrisch, Laura Bieker-Walz, Jakob
+  Erdmann, Yun-Pang Fl{\"o}tter{\"o}d, Robert Hilbrich, Leonhard L{\"u}cken,
+  Johannes Rummel, Peter Wagner, and Evamarie Wie{\ss}ner. 2018. ``Microscopic
+  Traffic Simulation Using {SUMO}.'' In \emph{2018 21st International
+  Conference on Intelligent Transportation Systems (ITSC)}, 2575--2582. IEEE.
+  \url{https://doi.org/10.1109/ITSC.2018.8569938}.
+
+\bibitem[{{ASAM e.V.}(2026)}]{asam2026opendrive}
+{ASAM e.V.} 2026. \emph{{ASAM OpenDRIVE 1.9.0}}. Accessed May 31, 2026.
+  \url{https://www.asam.net/standards/detail/opendrive/}.
+
+\bibitem[{Ashayer et~al.(2025)Ashayer, Elhag, Sun, and
+  Sartipi}]{ashayer2025cosimulation}
+Ashayer, Sima, Firas Elhag, Pengyuan Sun, and Mina Sartipi. 2025.
+  ``Co-Simulation in Intelligent Transportation Systems: A Survey Targeting
+  Connected and Autonomous Vehicles.'' \emph{Transportation Research Record}
+  2679 (10). \url{https://doi.org/10.1177/03611981251342248}.
+
+\bibitem[{Azfar et~al.(2025)Azfar, Huang, Tracy, Misiewicz, Liu, and
+  Ke}]{azfar2025traffic}
+Azfar, Talha, Kaicong Huang, Andrew Tracy, Sandra Misiewicz, Chenxi Liu, and
+  Ruimin Ke. 2025. ``Traffic Co-Simulation Framework Empowered by
+  Infrastructure Camera Sensing and Reinforcement Learning.'' \emph{Journal of
+  Intelligent Transportation Systems}. Published online September 15, 2025.
+  \url{https://doi.org/10.1080/15472450.2025.2559410}.
+
+\bibitem[{Borchers et~al.(2025)Borchers, Koopmann, Westhofen, Becker, Putze,
+  Grundt, de~Graaff, Kalwa, and Neurohr}]{borchers2025tsc2carla}
+Borchers, Philipp, Tjark Koopmann, Lukas Westhofen, Jan Steffen Becker, Lina
+  Putze, Dominik Grundt, Thies de~Graaff, Vincent Kalwa, and Christian Neurohr.
+  2025. ``TSC2CARLA: An Abstract Scenario-Based Verification Toolchain for
+  Automated Driving Systems.'' \emph{Science of Computer Programming} 242:
+  103256. \url{https://doi.org/10.1016/j.scico.2024.103256}.
+
+\bibitem[{Cao et~al.(2025)Cao, Shangguan, Visser, Chen, Chai, and
+  Cai}]{cao2025segment}
+Cao, Yue, Wei Shangguan, Arnoud Visser, Junjie Chen, Linguo Chai, and Baigen
+  Cai. 2025. ``Segment-Based Trajectory Prediction and Risk Assessment for
+  RSU-Assisted CAVs at Signalized Intersections.'' \emph{IEEE Transactions on
+  Intelligent Vehicles} 10 (1): 427--445.
+  \url{https://doi.org/10.1109/TIV.2024.3414198}.
+
+\bibitem[{{CARLA Simulator Project}(2026)}]{carla2026docs}
+{CARLA Simulator Project}. 2026. \emph{{CARLA} Documentation: OpenDRIVE
+  Standalone Mode and SUMO Co-Simulation}. Accessed May 31, 2026.
+  \url{https://carla.readthedocs.io/en/latest/}.
+
+\bibitem[{Chen et~al.(2024)Chen, Zheng, and Tan}]{chen2024roadside}
+Chen, Yanzhan, Liang Zheng, and Zhen Tan. 2024. ``Roadside LiDAR Placement for
+  Cooperative Traffic Detection by a Novel Chance Constrained Stochastic
+  Simulation Optimization Approach.'' \emph{Transportation Research Part C:
+  Emerging Technologies} 167: 104838.
+  \url{https://doi.org/10.1016/j.trc.2024.104838}.
+
+\bibitem[{Dosovitskiy et~al.(2017)Dosovitskiy, Ros, Codevilla, Lopez, and
+  Koltun}]{dosovitskiy2017carla}
+Dosovitskiy, Alexey, German Ros, Felipe Codevilla, Antonio Lopez, and Vladlen
+  Koltun. 2017. ``{CARLA}: An Open Urban Driving Simulator.'' In
+  \emph{Proceedings of the 1st Annual Conference on Robot Learning}, 1--16.
+  PMLR. \url{https://proceedings.mlr.press/v78/dosovitskiy17a.html}.
+
+\bibitem[{{Eclipse SUMO Project}(2026)}]{eclipse2026sumodocs}
+{Eclipse SUMO Project}. 2026. \emph{{SUMO} User Documentation}. Accessed
+  May 31, 2026. \url{https://sumo.dlr.de/docs/}.
+
+\bibitem[{Han et~al.(2022)Han, Xu, Xia, Sathyan, Guo, Bujanovic, Leslie, Goli,
+  and Ma}]{han2022strategic}
+Han, Xu, Runsheng Xu, Xin Xia, Anoop Sathyan, Yi Guo, Pavle Bujanovic, Ed
+  Leslie, Mohammad Goli, and Jiaqi Ma. 2022. ``Strategic and Tactical
+  Decision-Making for Cooperative Vehicle Platooning with Organized Behavior on
+  Multi-Lane Highways.'' \emph{Transportation Research Part C: Emerging
+  Technologies} 145: 103952. \url{https://doi.org/10.1016/j.trc.2022.103952}.
+
+\bibitem[{Li et~al.(2024)Li, Yuan, Zhang, Yan, Shen, Wang, and
+  Yang}]{li2024choose}
+Li, Yueyuan, Wei Yuan, Songan Zhang, Weihao Yan, Qiyuan Shen, Chunxiang Wang,
+  and Ming Yang. 2024. ``Choose Your Simulator Wisely: A Review on Open-Source
+  Simulators for Autonomous Driving.'' \emph{IEEE Transactions on Intelligent
+  Vehicles} 9 (5): 4861--4876.
+  \url{https://doi.org/10.1109/TIV.2024.3374044}.
+
+\bibitem[{{libOpenDRIVE Contributors}(2023)}]{libopendrive2023}
+{libOpenDRIVE Contributors}. 2023. \emph{{libOpenDRIVE}: Small, Lightweight
+  {C++} Library for Handling {OpenDRIVE} Files}. Accessed May 31, 2026.
+  \url{https://github.com/pageldev/libOpenDRIVE}.
+
+\bibitem[{Silva et~al.(2024)Silva, Silva, Botelho, and
+  Pendao}]{silva2024realistic}
+Silva, Ivo, Helder Silva, Fabricio Botelho, and Cristiano Pendao. 2024.
+  ``Realistic 3D Simulators for Automotive: A Review of Main Applications and
+  Features.'' \emph{Sensors} 24 (18): 5880.
+  \url{https://doi.org/10.3390/s24185880}.
+
+\bibitem[{Varga et~al.(2023)Varga, Doba, and Tettamanti}]{varga2023optimizing}
+Varga, Balazs, Daniel Doba, and Tamas Tettamanti. 2023. ``Optimizing Vehicle
+  Dynamics Co-Simulation Performance by Introducing Mesoscopic Traffic
+  Simulation.'' \emph{Simulation Modelling Practice and Theory} 125: 102739.
+  \url{https://doi.org/10.1016/j.simpat.2023.102739}.
+
+\bibitem[{Xu et~al.(2021)Xu, Guo, Han, Xia, Xiang, and Ma}]{xu2021opencda}
+Xu, Runsheng, Yi Guo, Xu Han, Xin Xia, Hao Xiang, and Jiaqi Ma. 2021.
+  ``OpenCDA: An Open Cooperative Driving Automation Framework Integrated with
+  Co-Simulation.'' In \emph{2021 IEEE International Intelligent Transportation
+  Systems Conference (ITSC)}, 1155--1162. IEEE.
+  \url{https://doi.org/10.1109/ITSC48978.2021.9564825}.
+
+\bibitem[{Xu et~al.(2023)Xu, Xiang, Han, Xia, Meng, Chen, Correa-Jullian, and
+  Ma}]{xu2023opencdaecosystem}
+Xu, Runsheng, Hao Xiang, Xu Han, Xin Xia, Zonglin Meng, Chia-Ju Chen, Camila
+  Correa-Jullian, and Jiaqi Ma. 2023. ``The OpenCDA Open-Source Ecosystem for
+  Cooperative Driving Automation Research.'' \emph{IEEE Transactions on
+  Intelligent Vehicles} 8 (4): 2698--2711.
+  \url{https://doi.org/10.1109/TIV.2023.3244948}.
+
+\bibitem[{Zheng et~al.(2023)Zheng, Han, Xia, Gao, Xiang, and
+  Ma}]{zheng2023opencdaros}
+Zheng, Zhaoliang, Xu Han, Xin Xia, Letian Gao, Hao Xiang, and Jiaqi Ma. 2023.
+  ``OpenCDA-ROS: Enabling Seamless Integration of Simulation and Real-World
+  Cooperative Driving Automation.'' \emph{IEEE Transactions on Intelligent
+  Vehicles} 8 (7): 3775--3780.
+  \url{https://doi.org/10.1109/TIV.2023.3298528}.
+
+\end{thebibliography}
 
 \end{document}
