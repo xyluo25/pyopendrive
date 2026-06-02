@@ -313,6 +313,7 @@ def build_sumo_project(
     write_vehicle_types(vtypes_xml, scenario)
 
     additional_files = [vtypes_xml.name]
+    copied_additional_files: list[Path] = []
     source_additional_files = _configured_or_discovered_files(
         scenario.sumo.source_additional_file,
         scenario,
@@ -326,12 +327,17 @@ def build_sumo_project(
             label="SUMO source additional file",
         )
         additional_files.append(copied_additional_file.name)
+        copied_additional_files.append(copied_additional_file)
     if source_additional_files:
         commands["additional"] = [
             "copy",
             *[str(path) for path in source_additional_files],
             str(paths.sumo_dir),
         ]
+    additional_sanitization = sanitize_sumo_additional_files(
+        net_xml,
+        copied_additional_files,
+    )
 
     configured_route_files = _resolve_config_paths(
         scenario.sumo.source_route_file,
@@ -432,6 +438,7 @@ def build_sumo_project(
         },
         "ego_vehicle_ids": ego_vehicle_ids,
         "discovered_source_files": _discovered_inputs_to_dict(discovered_inputs),
+        "additional_sanitization": additional_sanitization,
     }
     (paths.sumo_dir / "build_sumo_plan.json").write_text(
         json.dumps(plan, indent=2),
@@ -930,6 +937,154 @@ def _copy_supporting_sumo_files(
         )
         copied_files.append(copied_file)
     return copied_files
+
+
+def sanitize_sumo_project_additional_files(
+    sumo_dir: str | Path,
+) -> dict[str, object]:
+    """Remove lane-based additional elements that reference missing lanes.
+
+    SUMO stops immediately when an ``additional`` file contains an induction
+    loop or lane-area detector for a lane that is not present in the active
+    network. Dataset companion ``*.add.xml`` files can become stale after a
+    network is rebuilt, so this check keeps copied detector files consistent
+    with ``scenario.sumocfg`` before SUMO runs.
+    """
+
+    sumo_path = Path(sumo_dir)
+    sumocfg_path = sumo_path / "scenario.sumocfg"
+    if not sumocfg_path.exists():
+        return {
+            "status": "skipped_missing_sumocfg",
+            "sumocfg": str(sumocfg_path),
+            "files": [],
+        }
+
+    root = ET.parse(sumocfg_path).getroot()
+    input_values = _sumo_config_input_values(root)
+    net_file = _first_existing_config_path(
+        sumo_path,
+        input_values.get("net-file", []),
+    )
+    additional_files = _resolve_sumo_config_paths(
+        sumo_path,
+        input_values.get("additional-files", []),
+    )
+    return sanitize_sumo_additional_files(net_file, additional_files)
+
+
+def sanitize_sumo_additional_files(
+    net_file: str | Path | None,
+    additional_files: list[str | Path],
+) -> dict[str, object]:
+    """Sanitize multiple SUMO additional files against one network file."""
+
+    if net_file is None:
+        return {
+            "status": "skipped_missing_net_file",
+            "net_file": None,
+            "files": [],
+        }
+
+    net_path = Path(net_file)
+    lane_ids = _sumo_net_lane_ids(net_path)
+    if not lane_ids:
+        return {
+            "status": "skipped_no_network_lanes",
+            "net_file": str(net_path),
+            "files": [],
+        }
+
+    file_summaries = [
+        sanitize_sumo_additional_file(additional_file, lane_ids)
+        for additional_file in additional_files
+    ]
+    removed_count = sum(
+        int(summary.get("removed_count", 0)) for summary in file_summaries
+    )
+    return {
+        "status": "sanitized" if removed_count else "unchanged",
+        "net_file": str(net_path),
+        "removed_count": removed_count,
+        "files": file_summaries,
+    }
+
+
+def sanitize_sumo_additional_file(
+    additional_file: str | Path,
+    valid_lane_ids: set[str],
+) -> dict[str, object]:
+    """Remove invalid lane-referencing records from one additional XML file."""
+
+    additional_path = Path(additional_file)
+    if not additional_path.exists():
+        return {
+            "file": str(additional_path),
+            "status": "skipped_missing_file",
+            "removed_count": 0,
+            "missing_lanes": [],
+        }
+
+    tree = ET.parse(additional_path)
+    root = tree.getroot()
+    parent_by_child = {child: parent for parent in root.iter() for child in parent}
+    removed_count = 0
+    missing_lanes: list[str] = []
+
+    for element in list(root.iter()):
+        if element is root:
+            continue
+        referenced_lanes = _additional_element_lane_references(element)
+        if not referenced_lanes:
+            continue
+        invalid_lanes = [
+            lane_id for lane_id in referenced_lanes if lane_id not in valid_lane_ids
+        ]
+        if not invalid_lanes:
+            continue
+        parent = parent_by_child.get(element)
+        if parent is None:
+            continue
+        parent.remove(element)
+        removed_count += 1
+        missing_lanes.extend(invalid_lanes)
+
+    if removed_count:
+        _indent_xml(root)
+        tree.write(additional_path, encoding="utf-8", xml_declaration=True)
+
+    return {
+        "file": str(additional_path),
+        "status": "sanitized" if removed_count else "unchanged",
+        "removed_count": removed_count,
+        "missing_lanes": _deduplicate_strings(missing_lanes)[:20],
+    }
+
+
+def _sumo_net_lane_ids(net_file: Path) -> set[str]:
+    if not net_file.exists():
+        return set()
+    root = ET.parse(net_file).getroot()
+    lane_ids: set[str] = set()
+    for lane in root.iter("lane"):
+        lane_id = lane.get("id")
+        if lane_id:
+            lane_ids.add(lane_id)
+    return lane_ids
+
+
+def _additional_element_lane_references(element: ET.Element) -> list[str]:
+    lane_refs: list[str] = []
+    lane_id = element.get("lane")
+    if lane_id:
+        lane_refs.append(lane_id)
+
+    raw_lanes = element.get("lanes")
+    if raw_lanes:
+        for lane_part in raw_lanes.replace(",", " ").split():
+            if lane_part:
+                lane_refs.append(lane_part)
+    return lane_refs
 
 
 def _configured_or_discovered_files(

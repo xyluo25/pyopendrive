@@ -10,7 +10,6 @@ from pathlib import Path
 import subprocess
 import sys
 
-from .analysis import analyze_project
 from .carla_builder import build_carla_project
 from .config import ScenarioConfig, load_scenario_config, scenario_to_dict
 from .cosim_builder import build_cosim_project
@@ -19,7 +18,11 @@ from .project import (
     prepare_opendrive_network,
     write_project_config,
 )
-from .sumo_builder import build_sumo_project, find_sumo_tool
+from .sumo_builder import (
+    build_sumo_project,
+    find_sumo_tool,
+    sanitize_sumo_project_additional_files,
+)
 
 
 def build_sim_project(
@@ -128,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
             _print_build_next_steps(result, args)
             return 0
         if args.command == "analyze":
+            from .analysis import analyze_project
+
             outputs = analyze_project(
                 project_dir=args.project,
                 out_dir=args.out,
@@ -204,6 +209,8 @@ def run_sumo_only_workflow(
 
     run_sumo(out_dir, gui=gui)
     analysis_dir = Path(analysis_out) if analysis_out else Path(out_dir) / "analysis"
+    from .analysis import analyze_project
+
     result["analysis"] = {
         name: str(path)
         for name, path in analyze_project(
@@ -231,6 +238,13 @@ def run_sumo(
         raise FileNotFoundError(f"SUMO config not found: {config_path}")
 
     _raise_for_missing_dependencies(dependency_messages_for_sumo_run(gui=gui))
+    sanitization = sanitize_sumo_project_additional_files(sumo_dir)
+    removed_count = int(sanitization.get("removed_count", 0))
+    if removed_count:
+        print(
+            "Sanitized SUMO additional files: removed "
+            f"{removed_count} lane-based element(s) that referenced missing lanes."
+        )
     executable_name = "sumo-gui" if gui else "sumo"
     executable_path = find_sumo_tool(executable_name)
     if executable_path is None:

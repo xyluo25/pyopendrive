@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+    <input>
+        <net-file value="tempe.net.xml"/>
+        <route-files value="tempe.rou.xml"/>
+    </input>
+    <output>
+        <edgedata-output value="EdgeData.xml"/>
+    </output>
+    <time>
+        <begin value="27000.0"/>
+        <end value="37800.0"/>
+        <step-length value="1"/>
+    </time>
+</configuration>

@@ -3,6 +3,10 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+**/**emissions.xml
+**/**fcd.xml
+**/**tripinfo.xml
+
 # C extensions
 *.so
 

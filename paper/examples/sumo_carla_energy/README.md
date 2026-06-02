@@ -6,14 +6,14 @@ No root-level `datasets/` files are required.
 ## Dry-Run Build
 
 ```bash
-python -m pyopendrive.sim.cli build \
-  --xodr paper/examples/datasets/tempe_net/tempe.xodr \
-  --out paper/examples/sumo_carla_energy/generated/tempe_baseline \
-  --scenario paper/examples/sumo_carla_energy/configs/scenario_baseline.yaml \
-  --build-sumo \
-  --build-carla \
-  --build-cosim \
-  --dry-run \
+python -m pyopendrive.sim.cli build
+  --xodr paper/examples/datasets/tempe_net/tempe.xodr
+  --out paper/examples/sumo_carla_energy/generated/tempe_baseline
+  --scenario paper/examples/sumo_carla_energy/configs/scenario_baseline.yaml
+  --build-sumo
+  --build-carla
+  --build-cosim
+  --dry-run
   --overwrite
 ```
 
@@ -27,10 +27,10 @@ Use this path when CARLA is not installed or you only need SUMO mobility and
 energy-consumption outputs.
 
 ```bash
-python -m pyopendrive.sim.cli sumo-only \
-  --xodr paper/examples/datasets/tempe_net/tempe.xodr \
-  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only \
-  --scenario paper/examples/sumo_carla_energy/configs/scenario_sumo_from_xodr.yaml \
+python -m pyopendrive.sim.cli sumo-only
+  --xodr paper/examples/datasets/tempe_net/tempe.xodr
+  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only
+  --scenario paper/examples/sumo_carla_energy/configs/scenario_sumo_from_xodr.yaml
   --overwrite
 ```
 
@@ -462,10 +462,10 @@ the ego vehicle; otherwise it may match more vehicles than intended.
 After editing the scenario YAML, rebuild and run the SUMO-only example:
 
 ```bash
-python -m pyopendrive.sim.cli sumo-only \
-  --xodr paper/examples/datasets/tempe_net/tempe.xodr \
-  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only \
-  --scenario paper/examples/sumo_carla_energy/configs/scenario_sumo_from_xodr.yaml \
+python -m pyopendrive.sim.cli sumo-only
+  --xodr paper/examples/datasets/tempe_net/tempe.xodr
+  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only
+  --scenario paper/examples/sumo_carla_energy/configs/scenario_sumo_from_xodr.yaml
   --overwrite
 ```
 
@@ -507,11 +507,11 @@ To analyze an existing project with a temporary ego-id override, use repeated
 `--ego-vehicle-id` arguments:
 
 ```bash
-python -m pyopendrive.sim.cli analyze \
-  --project paper/examples/sumo_carla_energy/generated/tempe_sumo_only \
-  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only/analysis \
-  --sumo-only \
-  --ego-vehicle-id 141_5269.0 \
+python -m pyopendrive.sim.cli analyze
+  --project paper/examples/sumo_carla_energy/generated/tempe_sumo_only
+  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only/analysis
+  --sumo-only
+  --ego-vehicle-id 141_5269.0
   --ego-vehicle-id 172_417.0
 ```
 
@@ -524,9 +524,9 @@ To force route regeneration for a different OpenDRIVE file, set
 analyze an existing SUMO project without CARLA, run:
 
 ```bash
-python -m pyopendrive.sim.cli analyze \
-  --project paper/examples/sumo_carla_energy/generated/tempe_sumo_only \
-  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only/analysis \
+python -m pyopendrive.sim.cli analyze
+  --project paper/examples/sumo_carla_energy/generated/tempe_sumo_only
+  --out paper/examples/sumo_carla_energy/generated/tempe_sumo_only/analysis
   --sumo-only
 ```
 

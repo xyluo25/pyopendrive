@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2025-04-09 12:30:54 by Eclipse SUMO GUI Version 1.21.0
+<!-- generated on 2026-06-01 23:20:59 by Eclipse SUMO GUI Version 1.21.0
 <sumoConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
 
     <input>
-        <net-file value="C:\Users\xh8\ornl_work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.net.xml"/>
-        <route-files value="C:\Users\xh8\ornl_work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.rou.xml"/>
-        <additional-files value="C:\Users\xh8\ornl_work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\utdf_to_sumo.add.xml"/>
+        <net-file value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\tempe.net.xml"/>
+        <route-files value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\tempe.rou.xml"/>
     </input>
 
     <output>
-        <edgedata-output value="C:\Users\xh8\ornl_work\github_workspace\utdf2gmns\datasets\data_Tempe_network\utdf_to_sumo\EdgeData.xml"/>
+        <edgedata-output value="C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\EdgeData.xml"/>
     </output>
 
     <time>
         <begin value="27000.0"/>
-        <end value="34200.0"/>
+        <end value="37800.0"/>
         <step-length value="1"/>
     </time>
 

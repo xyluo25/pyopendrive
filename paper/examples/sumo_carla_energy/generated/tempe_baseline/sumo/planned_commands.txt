@@ -1,0 +1,11 @@
+[network]
+copy C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\tempe.net.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\network.net.xml
+
+[additional]
+copy C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\tempe.add.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo
+
+[support_files]
+copy paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\tempe.sumocfg paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\trips.trips.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\tempe.flow.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\tempe.nod.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\tempe.edg.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\tempe.con.xml
+
+[routes]
+copy C:\Users\xyluo25\anaconda3_workspace\001_GitHub\pyopendrive\paper\examples\datasets\tempe_net\tempe.rou.xml paper\examples\sumo_carla_energy\generated\tempe_baseline\sumo\routes.rou.xml

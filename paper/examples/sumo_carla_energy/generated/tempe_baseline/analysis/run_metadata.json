@@ -1,0 +1,17 @@
+{
+  "project_dir": "paper/examples/sumo_carla_energy/generated/tempe_baseline",
+  "tripinfo_path": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\outputs\\tripinfo.xml",
+  "carla_telemetry_path": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\carla\\outputs\\carla_telemetry.csv",
+  "scenario_id": "baseline",
+  "carla_analysis_status": "skipped_by_request",
+  "ego_filter": {
+    "enabled": false,
+    "analyze_only_ego": true,
+    "vehicle_ids": [],
+    "carla_actor_ids": [],
+    "carla_role_names": [],
+    "carla_type_ids": []
+  },
+  "figure_generation_status": "skipped: Matplotlib could not be imported, so result figures cannot be written. Reinstall NumPy and Matplotlib for this Python environment, then rerun the analysis command.",
+  "figures": {}
+}

@@ -1,0 +1,61 @@
+{
+  "scenario_id": "baseline",
+  "dry_run": true,
+  "commands": {
+    "network": [
+      "copy",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.net.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\network.net.xml"
+    ],
+    "additional": [
+      "copy",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.add.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo"
+    ],
+    "support_files": [
+      "copy",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\tempe.sumocfg",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\trips.trips.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\tempe.flow.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\tempe.nod.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\tempe.edg.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\tempe.con.xml"
+    ],
+    "routes": [
+      "copy",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.rou.xml",
+      "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\routes.rou.xml"
+    ]
+  },
+  "files": {
+    "net": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\network.net.xml",
+    "routes": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\routes.rou.xml",
+    "vehicle_types": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\vtypes.add.xml",
+    "sumocfg": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\scenario.sumocfg",
+    "ego_vehicles": "paper\\examples\\sumo_carla_energy\\generated\\tempe_baseline\\sumo\\ego_vehicles.json"
+  },
+  "ego_vehicle_ids": [],
+  "discovered_source_files": {
+    "net_file": "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.net.xml",
+    "route_files": [
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.rou.xml"
+    ],
+    "additional_files": [
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.add.xml"
+    ],
+    "trip_files": [
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\trips.trips.xml"
+    ],
+    "support_files": [
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\trips.trips.xml",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.flow.xml",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.nod.xml",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.edg.xml",
+      "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.con.xml"
+    ],
+    "sumocfg_file": "C:\\Users\\xyluo25\\anaconda3_workspace\\001_GitHub\\pyopendrive\\paper\\examples\\datasets\\tempe_net\\tempe.sumocfg",
+    "begin": 27000.0,
+    "end": 37800.0,
+    "step_length": 1.0
+  }
+}

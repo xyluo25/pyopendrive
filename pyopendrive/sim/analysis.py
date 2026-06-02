@@ -10,11 +10,6 @@ import statistics
 from typing import Any
 import xml.etree.ElementTree as ET
 
-import matplotlib
-
-matplotlib.use("Agg", force=True)
-import matplotlib.pyplot as plt  # noqa: E402
-
 FIGURE_DPI = 1200
 FUEL_LOWER_HEATING_VALUE_MJ_PER_KG = 44.0
 KWH_PER_MJ = 1.0 / 3.6
@@ -32,6 +27,10 @@ STRING_VALUE_FIELDS = {
     "vType",
     "vaporized",
 }
+
+
+class FigureGenerationError(RuntimeError):
+    """Raised when figure rendering dependencies are unavailable."""
 
 
 def read_tripinfo(path: str | Path) -> list[dict[str, object]]:
@@ -332,12 +331,16 @@ def analyze_project(
     scenario_summary_path = out_path / "scenario_summary.csv"
     mobility_path = out_path / "mobility_energy_table.csv"
     metadata_path = out_path / "run_metadata.json"
-    figure_outputs, figure_generation_status = write_result_figures(
-        trip_rows=trip_rows_for_figures,
-        carla_rows=carla_rows_for_figures,
-        scenario_summary=scenario_summary,
-        out_dir=out_path,
-    )
+    try:
+        figure_outputs, figure_generation_status = write_result_figures(
+            trip_rows=trip_rows_for_figures,
+            carla_rows=carla_rows_for_figures,
+            scenario_summary=scenario_summary,
+            out_dir=out_path,
+        )
+    except FigureGenerationError as exc:
+        figure_outputs = {}
+        figure_generation_status = f"skipped: {exc}"
 
     write_summary_csv([scenario_summary], scenario_summary_path)
     write_summary_csv([trip_summary], mobility_path)
@@ -531,7 +534,18 @@ def _percent_saved(baseline_value: float | None, saved_value: float) -> float:
 
 
 def _load_matplotlib_pyplot() -> Any:
-    return plt
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg", force=True)
+        import matplotlib.pyplot as pyplot
+    except ImportError as exc:
+        raise FigureGenerationError(
+            "Matplotlib could not be imported, so result figures cannot be "
+            "written. Reinstall NumPy and Matplotlib for this Python "
+            "environment, then rerun the analysis command."
+        ) from exc
+    return pyplot
 
 
 def _plot_mobility_energy_summary(

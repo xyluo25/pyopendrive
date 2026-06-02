@@ -354,6 +354,103 @@ def test_ego_add_mode_supports_od_pairs_and_edge_routes(tmp_path: Path) -> None:
     assert vehicles["ego_route"].find("route").get("edges") == ("edge_a edge_b edge_c")
 
 
+def test_sumo_additional_sanitizer_removes_missing_lane_detectors(
+    tmp_path: Path,
+) -> None:
+    from pyopendrive.sim.sumo_builder import sanitize_sumo_project_additional_files
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "network.net.xml").write_text(
+        """<net>
+  <edge id="edge_a">
+    <lane id="edge_a_0" index="0"/>
+  </edge>
+</net>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "detectors.add.xml").write_text(
+        """<additional>
+  <inductionLoop id="valid_loop" lane="edge_a_0" pos="-8" file="loop.xml"/>
+  <inductionLoop id="missing_loop" lane="missing_0" pos="-8" file="loop.xml"/>
+  <laneAreaDetector id="mixed_area" lanes="edge_a_0 missing_1" pos="0" endPos="5" file="area.xml"/>
+  <vType id="passenger"/>
+</additional>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "scenario.sumocfg").write_text(
+        """<configuration>
+  <input>
+    <net-file value="network.net.xml"/>
+    <additional-files value="detectors.add.xml"/>
+  </input>
+</configuration>
+""",
+        encoding="utf-8",
+    )
+
+    summary = sanitize_sumo_project_additional_files(sumo_dir)
+    root = ET.parse(sumo_dir / "detectors.add.xml").getroot()
+    element_ids = {element.get("id") for element in root}
+
+    assert summary["status"] == "sanitized"
+    assert summary["removed_count"] == 2
+    assert element_ids == {"valid_loop", "passenger"}
+
+
+def test_run_sumo_sanitizes_additional_files_before_launch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyopendrive.sim import cli
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "outputs").mkdir()
+    (sumo_dir / "network.net.xml").write_text(
+        """<net><edge id="edge_a"><lane id="edge_a_0" index="0"/></edge></net>""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "routes.rou.xml").write_text("<routes />", encoding="utf-8")
+    (sumo_dir / "detectors.add.xml").write_text(
+        """<additional>
+  <inductionLoop id="bad_detector" lane="missing_0" pos="-8" file="loop.xml"/>
+</additional>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "scenario.sumocfg").write_text(
+        """<configuration>
+  <input>
+    <net-file value="network.net.xml"/>
+    <route-files value="routes.rou.xml"/>
+    <additional-files value="detectors.add.xml"/>
+  </input>
+</configuration>
+""",
+        encoding="utf-8",
+    )
+
+    launched_commands: list[list[str]] = []
+    monkeypatch.setattr(cli, "find_sumo_tool", lambda _tool_name: tmp_path / "sumo.exe")
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda command, cwd, check: launched_commands.append(list(command)),
+    )
+
+    cli.run_sumo(tmp_path)
+    captured = capsys.readouterr()
+
+    assert "removed 1 lane-based element" in captured.out
+    assert launched_commands == [[str(tmp_path / "sumo.exe"), "-c", "scenario.sumocfg"]]
+    root = ET.parse(sumo_dir / "detectors.add.xml").getroot()
+    assert root.findall("inductionLoop") == []
+
+
 def test_cli_reports_missing_sumo_runtime(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -435,6 +532,42 @@ def test_analysis_writes_high_resolution_matplotlib_figures(tmp_path: Path) -> N
         assert figure_path.exists()
         assert figure_path.read_bytes().startswith(b"\x89PNG")
         assert figure_path.stat().st_size > 1000
+
+
+def test_analysis_writes_csv_when_figures_are_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pyopendrive.sim import analysis
+
+    tripinfo_path = tmp_path / "tripinfo.xml"
+    tripinfo_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<tripinfos>
+  <tripinfo id="ego_1" depart="0" arrival="12" duration="12" routeLength="120"
+            waitingTime="1" waitingCount="1" timeLoss="2"/>
+</tripinfos>
+""",
+        encoding="utf-8",
+    )
+
+    def fail_to_load_plotter() -> object:
+        raise analysis.FigureGenerationError("plot stack missing")
+
+    monkeypatch.setattr(analysis, "_load_matplotlib_pyplot", fail_to_load_plotter)
+    outputs = analysis.analyze_project(
+        tripinfo_path=tripinfo_path,
+        out_dir=tmp_path / "analysis",
+        scenario_id="csv_without_figures",
+        skip_carla=True,
+    )
+
+    metadata = json.loads(outputs["run_metadata"].read_text(encoding="utf-8"))
+    assert outputs["scenario_summary"].exists()
+    assert outputs["mobility_energy_table"].exists()
+    assert metadata["figure_generation_status"].startswith("skipped:")
+    assert metadata["figures"] == {}
+    assert not any(name.startswith("figure_") for name in outputs)
 
 
 def test_tripinfo_summary_reports_energy_without_pollutant_outputs() -> None:

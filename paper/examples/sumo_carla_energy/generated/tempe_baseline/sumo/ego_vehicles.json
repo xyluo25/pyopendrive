@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "mode": "select_existing",
+  "vehicle_ids": [],
+  "vehicle_type_id": "ego_passenger",
+  "highlight_enabled": true,
+  "highlight_color": "0,0,255",
+  "collect_only_ego": true,
+  "analyze_only_ego": true,
+  "carla_actor_ids": [],
+  "carla_role_names": [],
+  "carla_type_ids": []
+}
