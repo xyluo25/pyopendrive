@@ -10,4 +10,5 @@ import pyopendrive as odr
 
 
 if __name__ == "__main__":
-    odr.xodr_web_viewer()
+    # Keep this script alive so the browser can keep calling the local API.
+    odr.xodr_web_viewer(port=0, block=True)

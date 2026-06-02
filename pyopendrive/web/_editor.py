@@ -1180,9 +1180,21 @@ class _OpenDriveViewerHandler(SimpleHTTPRequestHandler):
     """HTTP handler for static files plus the small JSON editing API."""
 
     state: _ViewerState
+    extensions_map = {
+        **SimpleHTTPRequestHandler.extensions_map,
+        ".js": "text/javascript",
+        ".mjs": "text/javascript",
+        ".wasm": "application/wasm",
+        ".woff2": "font/woff2",
+    }
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, directory=str(WEB_DIR), **kwargs)
+
+    def end_headers(self) -> None:
+        """Prevent stale local viewer files from hiding code changes."""
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
 
     def _json_response(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         """Write one JSON API response."""
@@ -1270,6 +1282,8 @@ def xodr_web_viewer(
     *,
     host: str = "127.0.0.1",
     port: int = 8765,
+    open_browser: bool = True,
+    block: bool = True,
     default_xodr: str | Path | None = DEFAULT_XODR,
 ) -> str:
     """Open the bundled MapLibre viewer in the default browser.
@@ -1277,6 +1291,10 @@ def xodr_web_viewer(
     Args:
         host: Local interface to bind.
         port: Local port to bind. Use ``0`` to choose any free port.
+        open_browser: Open the viewer URL with the default browser.
+        block: Keep Python running while the viewer server is active. Use
+            ``False`` only when another part of the program keeps the process
+            alive.
         default_xodr: Optional OpenDRIVE file loaded at startup.
 
     Returns:
@@ -1286,10 +1304,23 @@ def xodr_web_viewer(
     server, url = run_server(
         host=host,
         port=port,
-        open_browser=True,
+        open_browser=open_browser,
         default_xodr=default_xodr,
     )
+    _ACTIVE_SERVERS.append(server)
+    if block:
+        print(f"pyopendrive web viewer is running at {url}", flush=True)
+        print("Press Ctrl+C to stop the viewer.", flush=True)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.server_close()
+            if server in _ACTIVE_SERVERS:
+                _ACTIVE_SERVERS.remove(server)
+        return url
+
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    _ACTIVE_SERVERS.append(server)
     return url

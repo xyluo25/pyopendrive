@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import csv
 from copy import deepcopy
+import json
 import math
 from pathlib import Path
 import shutil
+import threading
+import urllib.request
 import xml.etree.ElementTree as ET
 
 import pytest
@@ -550,6 +553,58 @@ def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
         original_center,
         edited_center,
     )
+
+
+def test_web_package_exports_default_xodr() -> None:
+    """The module CLI imports DEFAULT_XODR from the package namespace."""
+    from pyopendrive.web import DEFAULT_XODR
+
+    assert DEFAULT_XODR.name == "data.xodr"
+    assert DEFAULT_XODR.exists()
+
+
+def test_web_static_javascript_uses_module_mime_type() -> None:
+    """Browsers reject module scripts unless JavaScript has a JS MIME type."""
+    from pyopendrive.web import run_server
+
+    server, url = run_server(open_browser=False, port=0)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        script_urls = [
+            f"{url}index.js?v=cache_bust",
+            f"{url}static/odr-3d-objects.js",
+        ]
+        for script_url in script_urls:
+            with urllib.request.urlopen(script_url, timeout=30) as response:
+                content_type = response.getheader("Content-Type")
+            assert content_type is not None
+            assert content_type.split(";", 1)[0] == "text/javascript"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_xodr_web_viewer_background_thread_serves_network() -> None:
+    """Background mode must still serve the startup network API."""
+    from pyopendrive.web import xodr_web_viewer
+    from pyopendrive.web._editor import _ACTIVE_SERVERS
+
+    url = xodr_web_viewer(port=0, open_browser=False, block=False)
+    server = _ACTIVE_SERVERS[-1]
+    try:
+        with urllib.request.urlopen(f"{url}api/network", timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        if server in _ACTIVE_SERVERS:
+            _ACTIVE_SERVERS.remove(server)
+
+    assert payload["filename"] == "data.xodr"
+    assert len(payload["geojson"]["features"]) > 0
+    assert len(payload["lane_geojson"]["features"]) > 0
 
 
 def test_lane_queries_roadmarks_and_surface_points(

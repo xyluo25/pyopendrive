@@ -14,7 +14,7 @@ the web page can edit today, while leaving unknown OpenDRIVE content untouched.
 """
 
 from __future__ import annotations
-from ._editor import xodr_web_viewer, run_server
+from ._editor import DEFAULT_XODR, run_server, xodr_web_viewer
 
 
-__all__ = ["xodr_web_viewer", "run_server"]
+__all__ = ["DEFAULT_XODR", "run_server", "xodr_web_viewer"]

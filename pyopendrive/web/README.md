@@ -102,31 +102,35 @@ Return value:
 ### `xodr_web_viewer()` Tutorial
 
 Use `xodr_web_viewer()` when you want the simplest Python call. It starts the
-server in a background daemon thread, opens the browser, and returns the URL.
+server, opens the browser, and keeps Python running while the local API is
+needed by the page.
 
 ```python
 from pyopendrive.web import xodr_web_viewer
 
-url = xodr_web_viewer(
+xodr_web_viewer(
     host="127.0.0.1",
     port=8765,
+    open_browser=True,
+    block=True,
     default_xodr=r"C:\path\to\map.xodr",
 )
-
-print(f"Viewer running at {url}")
 ```
 
 Arguments:
 
-- `index_html` - kept for backward compatibility. The current viewer is served
-  by the local Python API server.
 - `host` - local interface to bind.
 - `port` - local port to bind. Use `0` for any free port.
+- `open_browser` - when `True`, open the viewer URL in the default browser.
+- `block` - when `True`, keep the Python process alive until the browser closes
+  the server or you press `Ctrl+C`. Use `False` only when your own application
+  keeps running after the viewer starts.
 - `default_xodr` - startup `.xodr` file. If omitted, `data.xodr` is loaded.
 
 Return value:
 
-- URL string for the running viewer.
+- URL string for the viewer. In blocking mode, the URL is also printed before
+  the server starts handling requests.
 
 ## Main Capabilities
 
